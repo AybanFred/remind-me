@@ -22,8 +22,15 @@ I'm a junior developer who was job hunting and upskilling at the same time, and 
 ## Features
 
 **Planning**
-- **Tasks:** add, edit, complete and delete tasks with notes, a category (upskilling, job hunt, daily) and an optional due date. Filter by category.
-- **Kanban board:** drag cards between To Do, Doing and Done, or reorder within a column. Status and order are saved to the database, so they survive a reload.
+- **Tasks:** add, edit, complete and delete tasks with notes, a category and an optional due date. Filter by category. Any task can have an optional **subtask checklist** with a progress bar, and when the last box is ticked the app offers to complete the task.
+- **Custom categories:** everyone starts with Upskilling, Job hunt and Daily, and can rename, recolor, add or remove them. Removing a category that is in use moves its tasks to another one first.
+- **Kanban board:** drag cards between To Do, Doing and Done, or reorder within a column. Status and order are saved to the database, so they survive a reload. Click a card to open a details window where everything (title, notes, status, category, due date, subtasks) can be edited.
+- **Calendar:** a month view of tasks by due date, colored by category. Pick a day to see its tasks, open one, or add a task for that day.
+
+**Time tracking** (like Clockify)
+- **Projects and tasks:** create projects with a client, color and optional hourly rate, and add tasks inside each one. Archive a project to hide it while keeping its hours in the reports.
+- **Timer:** start and stop a timer against a project and task. The running timer is stored in the database, so it survives refreshes and shows on every device, and the database allows only one running timer at a time. Edit or delete entries (with undo), continue an earlier entry, or add time by hand.
+- **Reports:** hours per project, task and day for today, this or last week, this or last month, or a custom range, with earnings where a rate is set. Export a timesheet as CSV.
 
 **Focus and progress**
 - **Focus timer:** a 25-minute focus and 5-minute break Pomodoro, optionally linked to a task. Sessions are saved. The countdown keeps running as you move between pages, shows in the header and in the browser tab title, stays accurate in background tabs, and **survives a page refresh**. A chime, vibration and notification announce the end of a session.
@@ -85,6 +92,8 @@ flowchart LR
 - **The database enforces security.** The browser talks to Postgres directly, so every table has Row Level Security. Even if the frontend had a bug, one user could not read another's rows.
 - **The AI key never reaches the browser.** The app calls an Edge Function with the user's login token. The function limits the input size, calls Groq, validates the JSON that comes back, and returns only the result. Task ids returned by the model are checked against the real task list.
 - **Personalization is layered on the theme.** Custom colors are CSS variables set on the page, so they override the chosen theme and removing them hands control back to it. Settings coming from storage or the account are validated before use, and font names are restricted to plain characters because they end up in a URL and in CSS.
+- **The database enforces the time-tracking rules.** One running timer per user is a unique index, an entry cannot end before it starts (a check constraint), a project with logged hours cannot be deleted (a foreign key), and policies stop an entry being attached to someone else's project.
+- **CSV export is safe to open in a spreadsheet.** Cells that start with = + - or @ are prefixed so a project or task name can never run as a formula.
 - **Dates use the user's local time zone** for streaks and "this week", so a task finished at 11 pm counts for that day.
 - **The timer uses the clock, not ticks.** It stores an end time and compares it to the real clock, so it stays correct when the browser slows down background tabs.
 - **Moves feel instant.** Dragging a card updates the screen first and saves to the database in the background. If the save fails, the board reloads from the database and shows an error.
@@ -94,6 +103,11 @@ flowchart LR
 | Table | Columns | Notes |
 | --- | --- | --- |
 | `tasks` | `id`, `user_id`, `title`, `notes`, `category`, `status`, `due_at`, `position`, `completed_at`, `created_at` | `category` is `upskilling`, `job_hunt` or `daily`. `status` is `todo`, `doing` or `done`. `position` orders cards in a column. |
+| `categories` | `id`, `user_id`, `key`, `label`, `color`, `position` | Tasks store the `key`, which never changes, so renaming a category touches no tasks. `color` is a theme color name or a hex value. |
+| `subtasks` | `id`, `user_id`, `task_id`, `title`, `done`, `position` | Deleted together with their task. Loaded in the same request as the tasks. |
+| `projects` | `id`, `user_id`, `name`, `client`, `color`, `hourly_rate`, `archived` | A project with hours logged cannot be deleted (the database refuses), so it is archived instead. |
+| `project_tasks` | `id`, `user_id`, `project_id`, `name` | Deleted together with their project. |
+| `time_entries` | `id`, `user_id`, `project_id`, `task_id`, `description`, `started_at`, `ended_at` | A null `ended_at` is a running timer. A unique index allows one running timer per user. |
 | `focus_sessions` | `id`, `user_id`, `task_id`, `started_at`, `minutes_focused` | `task_id` is optional and is cleared if the task is deleted. Indexed on `(user_id, started_at)`. |
 
 Both tables have a policy that limits every read and write to rows where `user_id = auth.uid()`. The SQL is in [`supabase/`](supabase).
@@ -103,7 +117,7 @@ Both tables have a policy that limits every read and write to rows where `user_i
 ```
 src/
 ├── components/     Reusable UI: app shell and tab bar, task form, task row, toasts, theme picker, reminder banner
-├── views/          One file per page: Auth, Tasks, Board, Focus, Dashboard, Coach
+├── views/          One file per page: Auth, Tasks, Board, Focus, Time (tracker, projects, reports), Dashboard, Coach, Settings
 ├── stores/         Pinia stores (the only code that calls Supabase)
 ├── lib/            Pure helpers: stats, reminders, dates, theme, Supabase client, AI client
 ├── router/         Routes and the login guard
@@ -142,6 +156,9 @@ In the Supabase SQL Editor, run these in order:
 1. `supabase/reference/tasks.sql`
 2. `supabase/migrations/20261021000000_focus_sessions.sql`
 3. `supabase/migrations/20261022000000_avatars_bucket.sql` (profile photo storage)
+4. `supabase/migrations/20261023000000_time_tracking.sql` (projects, project tasks and time entries)
+5. `supabase/migrations/20261024000000_subtasks.sql` (subtask checklists; the app still works without it, just without subtasks)
+6. `supabase/migrations/20261025000000_categories.sql` (custom categories; without it the three built-in ones are used)
 
 ### Google sign-in (optional)
 
@@ -187,7 +204,7 @@ The app is deployed on Vercel straight from this repository. Every push to `main
 npm run test:unit
 ```
 
-The unit tests cover the logic that is easiest to get wrong, including XP and level maths, which celebration to show, readable text colors, and restoring the focus timer after a refresh (still running, finished while away, or paused): streak counting (including a gap in the days and an empty "today"), the Monday week start, per-category weekly counts, 7-day focus totals, and which reminders should fire (including never repeating one and re-firing when a due date changes).
+The unit tests cover the logic that is easiest to get wrong, including time-entry maths (durations, daily and per-project totals, report date ranges, earnings and CSV output), XP and level maths, which celebration to show, readable text colors, and restoring the focus timer after a refresh (still running, finished while away, or paused): streak counting (including a gap in the days and an empty "today"), the Monday week start, per-category weekly counts, 7-day focus totals, and which reminders should fire (including never repeating one and re-firing when a due date changes).
 
 ## Known limitations
 

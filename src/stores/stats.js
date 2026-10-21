@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import { calcStreak, completedThisWeek, dateKey, focusMinutesPerDay } from '@/lib/stats'
 import { levelProgress, XP_PER_TASK } from '@/lib/rewards'
+import { useCategoriesStore } from '@/stores/categories'
 
 export const useStatsStore = defineStore('stats', {
   state: () => ({
@@ -19,7 +20,7 @@ export const useStatsStore = defineStore('stats', {
       ])
       return calcStreak(activeDays)
     },
-    weekByCategory: (state) => completedThisWeek(state.completedTasks),
+    weekByCategory: (state) => completedThisWeek(state.completedTasks, new Date(), useCategoriesStore().keys),
     weekTotal() {
       return Object.values(this.weekByCategory).reduce((sum, n) => sum + n, 0)
     },

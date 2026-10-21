@@ -5,11 +5,13 @@ import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } fro
 import { useStatsStore } from '@/stores/stats'
 import { formatMinutes } from '@/lib/stats'
 import { Flame, Trophy } from 'lucide-vue-next'
-import { categoryList } from '@/lib/categories'
+import { useCategoriesStore } from '@/stores/categories'
+import CategoryBadge from '@/components/CategoryBadge.vue'
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip)
 
 const stats = useStatsStore()
+const categories = useCategoriesStore()
 
 // Chart.js draws on a <canvas>, which can't use Tailwind classes. So we read the active
 // daisyUI theme's colors from CSS variables and re-read them whenever the theme changes.
@@ -117,9 +119,9 @@ const weekFocusMinutes = computed(() => stats.last7Days.reduce((sum, d) => sum +
         <h2 class="text-base-content/60 text-sm">Tasks completed this week</h2>
         <p class="text-5xl font-bold tabular-nums">{{ stats.weekTotal }}</p>
         <ul class="mt-2 space-y-1 text-sm">
-          <li v-for="c in categoryList" :key="c.value" class="flex items-center justify-between">
-            <span class="badge badge-soft badge-sm" :class="c.badge">{{ c.label }}</span>
-            <span class="font-medium tabular-nums">{{ stats.weekByCategory[c.value] }}</span>
+          <li v-for="c in categories.all" :key="c.key" class="flex items-center justify-between">
+            <CategoryBadge :category="c.key" small />
+            <span class="font-medium tabular-nums">{{ stats.weekByCategory[c.key] ?? 0 }}</span>
           </li>
         </ul>
       </div>

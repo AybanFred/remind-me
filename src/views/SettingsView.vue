@@ -9,6 +9,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import ThemePicker from '@/components/ThemePicker.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
+import CategoryManager from '@/components/CategoryManager.vue'
+import { useTasksStore } from '@/stores/tasks'
 
 const auth = useAuthStore()
 const appearance = useAppearanceStore()
@@ -80,6 +82,7 @@ function readThemeColors() {
 // Switching themes changes what "the theme's own colour" is.
 let themeObserver
 onMounted(() => {
+  useTasksStore().fetchTasks() // the category list shows how many tasks each one has
   readThemeColors()
   themeObserver = new MutationObserver(readThemeColors)
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
@@ -272,6 +275,8 @@ async function resetAll() {
         Your choices are saved on this device and on your account, so they follow you to other devices.
       </p>
     </section>
+
+    <CategoryManager />
 
     <!-- Celebrations -->
     <section class="card card-border bg-base-100 space-y-3 p-5">

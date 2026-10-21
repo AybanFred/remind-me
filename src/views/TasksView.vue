@@ -1,9 +1,10 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { Inbox, Sparkles } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Inbox, Settings2, Sparkles } from 'lucide-vue-next'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
-import { categoryList } from '@/lib/categories'
+import { useCategoriesStore } from '@/stores/categories'
+import TaskViewTabs from '@/components/TaskViewTabs.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import TaskItem from '@/components/TaskItem.vue'
 import ReminderBanner from '@/components/ReminderBanner.vue'
@@ -12,7 +13,12 @@ const tasks = useTasksStore()
 const toast = useToastStore()
 const form = ref(null)
 
-const filters = [{ value: 'all', label: 'All' }, ...categoryList]
+const categories = useCategoriesStore()
+
+const filters = computed(() => [
+  { value: 'all', label: 'All' },
+  ...categories.all.map((c) => ({ value: c.key, label: c.label }))
+])
 
 async function addTask(payload) {
   await tasks.addTask(payload)
@@ -36,6 +42,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <div class="space-y-5">
+    <TaskViewTabs />
+
     <ReminderBanner />
 
     <TaskForm ref="form" :on-save="addTask" />
@@ -50,6 +58,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       >
         {{ f.label }}
       </button>
+      <RouterLink
+        v-if="categories.ready"
+        to="/settings#categories"
+        class="btn btn-sm join-item btn-ghost"
+        aria-label="Manage categories"
+        title="Manage categories"
+      >
+        <Settings2 class="size-4" />
+      </RouterLink>
     </nav>
 
     <p v-if="tasks.error" class="alert alert-error alert-soft">{{ tasks.error }}</p>

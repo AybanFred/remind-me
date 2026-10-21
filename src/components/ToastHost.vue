@@ -13,7 +13,7 @@ function runAction(toast) {
 <template>
   <!-- Pinned to the top so it never covers the bottom tab bar on phones. -->
   <div
-    class="toast toast-top toast-center z-50 w-full max-w-md"
+    class="toast toast-top toast-center z-[1100] w-full max-w-md"
     style="top: calc(env(safe-area-inset-top) + 0.5rem)"
     aria-live="polite"
   >

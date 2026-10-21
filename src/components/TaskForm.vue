@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Plus } from 'lucide-vue-next'
-import { categoryList } from '@/lib/categories'
+import { useCategoriesStore } from '@/stores/categories'
 import { isoToLocalInput, localInputToIso } from '@/lib/dates'
 
 // Used for BOTH adding a new task and editing an existing one.
@@ -18,7 +18,17 @@ const emit = defineEmits(['cancel'])
 const titleInput = ref(null)
 const title = ref(props.initial?.title ?? '')
 const notes = ref(props.initial?.notes ?? '')
-const category = ref(props.initial?.category ?? 'daily')
+const categories = useCategoriesStore()
+const category = ref(props.initial?.category ?? categories.all[0]?.key ?? 'daily')
+
+// If the task's own category was removed, still offer it so editing doesn't silently change it.
+const categoryOptions = computed(() => {
+  const list = categories.all.map((c) => ({ key: c.key, label: c.label }))
+  if (category.value && !categories.byKey.has(category.value)) {
+    list.push({ key: category.value, label: categories.labelOf(category.value) })
+  }
+  return list
+})
 const dueAt = ref(isoToLocalInput(props.initial?.due_at))
 const error = ref('')
 const saving = ref(false)
@@ -67,7 +77,7 @@ async function onSubmit() {
     />
     <div class="grid gap-3 sm:grid-cols-2">
       <select v-model="category" class="select w-full" aria-label="Category">
-        <option v-for="c in categoryList" :key="c.value" :value="c.value">{{ c.label }}</option>
+        <option v-for="c in categoryOptions" :key="c.key" :value="c.key">{{ c.label }}</option>
       </select>
       <input v-model="dueAt" type="datetime-local" class="input w-full" aria-label="Due date" />
     </div>

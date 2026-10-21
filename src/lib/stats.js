@@ -38,12 +38,15 @@ export function startOfWeek(today = new Date()) {
   return d
 }
 
-// Completed tasks since Monday, counted per category.
-export function completedThisWeek(tasks, today = new Date()) {
-  const counts = { upskilling: 0, job_hunt: 0, daily: 0 }
+// Completed tasks since Monday, counted per category. Every key in `categoryKeys` appears
+// (with 0 if nothing was done), plus any other category a task happens to have.
+export function completedThisWeek(tasks, today = new Date(), categoryKeys = ['upskilling', 'job_hunt', 'daily']) {
+  const counts = Object.fromEntries(categoryKeys.map((key) => [key, 0]))
   const weekStart = startOfWeek(today)
   for (const task of tasks) {
-    if (task.completed_at && new Date(task.completed_at) >= weekStart) counts[task.category]++
+    if (task.completed_at && new Date(task.completed_at) >= weekStart) {
+      counts[task.category] = (counts[task.category] ?? 0) + 1
+    }
   }
   return counts
 }

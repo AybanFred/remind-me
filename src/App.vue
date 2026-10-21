@@ -3,16 +3,20 @@ import { watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAuthStore } from '@/stores/auth'
+import { useCategoriesStore } from '@/stores/categories'
 import { useFocusStore } from '@/stores/focus'
 import { useTasksStore } from '@/stores/tasks'
+import { useTimeStore } from '@/stores/time'
 import { useRemindersStore } from '@/stores/reminders'
 import AppShell from '@/components/AppShell.vue'
 import ToastHost from '@/components/ToastHost.vue'
 
 const auth = useAuthStore()
 const appearance = useAppearanceStore()
+const categories = useCategoriesStore()
 const tasks = useTasksStore()
 const focus = useFocusStore()
+const time = useTimeStore()
 const reminders = useRemindersStore()
 const route = useRoute()
 
@@ -25,12 +29,16 @@ watch(
   (id) => {
     if (id) {
       appearance.syncFromAccount() // colours and font saved on your account
+      categories.fetch() // your own task categories
       reminders.start()
       focus.hydrate() // bring back a timer that was running before a refresh
+      time.fetchAll() // a time-tracker entry may still be running (maybe started on another device)
     } else {
       reminders.stop()
       tasks.$reset() // don't keep the previous account's data in memory after logout
       focus.clear()
+      time.clear()
+      categories.clear()
     }
   },
   { immediate: true }

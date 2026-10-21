@@ -103,42 +103,67 @@ const ABOUT_USER =
 
 // ---------- 1. Break a goal into tasks ----------
 
-const breakdownSchema = {
-  type: 'object',
-  properties: {
-    tasks: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          title: { type: 'string' },
-          notes: { type: 'string' },
-          category: { type: 'string', enum: CATEGORIES },
-        },
-        required: ['title', 'notes', 'category'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['tasks'],
-  additionalProperties: false,
+// What the three built-in categories mean, so the AI sorts tasks sensibly.
+const BUILT_IN_MEANINGS: Record<string, string> = {
+  upskilling: 'learning skills or building projects',
+  job_hunt: 'applications, CV/portfolio, networking, interview prep',
+  daily: 'routines and everyday admin',
 }
 
-async function breakdown(body: { goal?: string }) {
+// The user's own categories arrive from the browser. Accept at most 20 well-formed ones;
+// anything odd falls back to the built-in three.
+function readCategories(raw: unknown): { key: string; label: string }[] {
+  const list = Array.isArray(raw)
+    ? raw
+        .filter((c) => c && /^[a-z0-9_]{1,40}$/.test(String(c.key)))
+        .slice(0, 20)
+        .map((c) => ({ key: String(c.key), label: clip(c.label, 40) || String(c.key) }))
+    : []
+  return list.length ? list : CATEGORIES.map((key) => ({ key, label: key }))
+}
+
+function breakdownSchema(keys: string[]) {
+  return {
+    type: 'object',
+    properties: {
+      tasks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            notes: { type: 'string' },
+            category: { type: 'string', enum: keys },
+          },
+          required: ['title', 'notes', 'category'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['tasks'],
+    additionalProperties: false,
+  }
+}
+
+async function breakdown(body: { goal?: string; categories?: unknown }) {
   const goal = clip(body.goal, 500).trim()
   if (!goal) throw new HttpError(400, 'Type a goal first.')
 
+  const categories = readCategories(body.categories)
+  const keys = categories.map((c) => c.key)
+  const categoryGuide = categories
+    .map((c) => `${c.key} = "${c.label}"${BUILT_IN_MEANINGS[c.key] ? ` (${BUILT_IN_MEANINGS[c.key]})` : ''}`)
+    .join('; ')
+
   const answer = await ask({
     effort: 'low',
-    schema: breakdownSchema,
+    schema: breakdownSchema(keys),
     system:
       `${ABOUT_USER}\n\n` +
       'Turn the goal into 3 to 8 small, concrete tasks, in the order they should be done. ' +
       'Each title starts with a verb, is under 80 characters, and can be finished in one sitting ' +
       '(about two hours at most). "notes" is one short sentence saying how to do it or what "done" looks like. ' +
-      'Categories: upskilling = learning skills or building projects; ' +
-      'job_hunt = applications, CV/portfolio, networking, interview prep; ' +
-      'daily = routines and everyday admin.',
+      `Put each task in the best-fitting category, using its key. Categories: ${categoryGuide}.`,
     user: `<goal>\n${goal}\n</goal>`,
   })
 
@@ -147,7 +172,7 @@ async function breakdown(body: { goal?: string }) {
     tasks: parsed.tasks.slice(0, 8).map((t: Record<string, string>) => ({
       title: clip(t.title, 120),
       notes: clip(t.notes, 300),
-      category: CATEGORIES.includes(t.category) ? t.category : 'daily',
+      category: keys.includes(t.category) ? t.category : keys[0],
     })),
   }
 }
@@ -221,13 +246,15 @@ async function plan(body: { now?: string; tasks?: Array<Record<string, unknown>>
 async function checkin(body: { stats?: Record<string, unknown> }) {
   const s = body.stats ?? {}
   const week = (s.completedThisWeek ?? {}) as Record<string, unknown>
+  // Category names are the user's own, so cap how many and how long they can be.
+  const completedThisWeek = Object.fromEntries(
+    Object.entries(week)
+      .slice(0, 20)
+      .map(([name, count]) => [clip(name, 40), Number(count) || 0]),
+  )
   const stats = {
     streak_days: Number(s.streak) || 0,
-    completed_this_week: {
-      upskilling: Number(week.upskilling) || 0,
-      job_hunt: Number(week.job_hunt) || 0,
-      daily: Number(week.daily) || 0,
-    },
+    completed_this_week_by_category: completedThisWeek,
     open_tasks: Number(s.openTasks) || 0,
     overdue_tasks: Number(s.overdueTasks) || 0,
     focus_minutes_today: Number(s.focusMinutesToday) || 0,

@@ -4,8 +4,9 @@ import { CalendarClock, Pencil, Trash2 } from 'lucide-vue-next'
 import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
-import { categories } from '@/lib/categories'
 import { formatDue } from '@/lib/dates'
+import CategoryBadge from '@/components/CategoryBadge.vue'
+import SubtaskList from '@/components/SubtaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
 
 const props = defineProps({ task: { type: Object, required: true } })
@@ -64,9 +65,7 @@ async function save(changes) {
         <p class="font-medium wrap-break-word" :class="{ 'line-through': isDone }">{{ task.title }}</p>
         <p v-if="task.notes" class="text-base-content/70 mt-0.5 text-sm wrap-break-word">{{ task.notes }}</p>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span class="badge badge-soft" :class="categories[task.category].badge">
-            {{ categories[task.category].label }}
-          </span>
+          <CategoryBadge :category="task.category" />
           <span
             v-if="task.due_at"
             class="flex items-center gap-1"
@@ -76,6 +75,8 @@ async function save(changes) {
             {{ isOverdue ? 'Overdue · ' : '' }}{{ formatDue(task.due_at) }}
           </span>
         </div>
+
+        <SubtaskList v-if="tasks.subtasksReady" :task="task" />
       </div>
       <div class="flex shrink-0">
         <button class="btn btn-ghost btn-square btn-sm" aria-label="Edit task" @click="editing = true">

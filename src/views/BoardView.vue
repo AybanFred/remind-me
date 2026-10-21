@@ -1,12 +1,14 @@
 <script setup>
-import { nextTick, onMounted, reactive, watch } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { CalendarClock } from 'lucide-vue-next'
+import { CalendarClock, ListChecks } from 'lucide-vue-next'
 import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
-import { categories } from '@/lib/categories'
 import { formatDue } from '@/lib/dates'
+import CategoryBadge from '@/components/CategoryBadge.vue'
+import TaskModal from '@/components/TaskModal.vue'
+import TaskViewTabs from '@/components/TaskViewTabs.vue'
 
 const tasks = useTasksStore()
 const rewards = useRewardsStore()
@@ -53,6 +55,21 @@ async function onDrop(status) {
   }
 }
 
+// Clicking a card opens its details. A drag also ends with a click, so we ignore clicks
+// that arrive right after a drag.
+const openTaskId = ref(null)
+let dragging = false
+
+function onDragStart() {
+  dragging = true
+}
+function onDragEnd() {
+  setTimeout(() => (dragging = false), 50)
+}
+function openTask(task) {
+  if (!dragging) openTaskId.value = task.id
+}
+
 function isOverdue(task) {
   return task.status !== 'done' && task.due_at && new Date(task.due_at) < new Date()
 }
@@ -60,10 +77,12 @@ function isOverdue(task) {
 
 <template>
   <div class="space-y-4">
+    <TaskViewTabs />
+
     <p v-if="tasks.error" class="alert alert-error alert-soft">{{ tasks.error }}</p>
 
     <p class="text-base-content/60 text-sm md:hidden">
-      Swipe sideways for the other columns. Press and hold a card to drag it.
+      Swipe sideways for the other columns. Tap a card for details, or press and hold to drag it.
     </p>
 
     <!-- Loading placeholders -->
@@ -97,13 +116,20 @@ function isOverdue(task) {
           :delay-on-touch-only="true"
           ghost-class="opacity-40"
           class="min-h-24 space-y-2"
+          @start="onDragStart"
+          @end="onDragEnd"
           @add="onDrop(col.status)"
           @update="onDrop(col.status)"
         >
           <article
             v-for="task in columns[col.status]"
             :key="task.id"
-            class="card bg-base-100 cursor-grab p-3 shadow-sm active:cursor-grabbing"
+            class="card bg-base-100 hover:ring-primary/40 cursor-grab p-3 shadow-sm hover:ring-2 active:cursor-grabbing"
+            role="button"
+            tabindex="0"
+            :aria-label="`Open ${task.title}`"
+            @click="openTask(task)"
+            @keydown.enter="openTask(task)"
           >
             <p
               class="font-medium wrap-break-word"
@@ -112,8 +138,10 @@ function isOverdue(task) {
               {{ task.title }}
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span class="badge badge-soft badge-sm" :class="categories[task.category].badge">
-                {{ categories[task.category].label }}
+              <CategoryBadge :category="task.category" small />
+              <span v-if="task.subtasks?.length" class="text-base-content/60 flex items-center gap-1">
+                <ListChecks class="size-3.5" />
+                {{ task.subtasks.filter((s) => s.done).length }}/{{ task.subtasks.length }}
               </span>
               <span
                 v-if="task.due_at"
@@ -135,5 +163,7 @@ function isOverdue(task) {
         </p>
       </section>
     </div>
+
+    <TaskModal v-if="openTaskId" :task-id="openTaskId" @close="openTaskId = null" />
   </div>
 </template>

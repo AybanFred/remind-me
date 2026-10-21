@@ -3,10 +3,11 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { callCoach } from '@/lib/coach'
 import { useStatsStore } from '@/stores/stats'
 import { useTasksStore } from '@/stores/tasks'
-import { categoryList } from '@/lib/categories'
+import { useCategoriesStore } from '@/stores/categories'
 
 const tasks = useTasksStore()
 const stats = useStatsStore()
+const categories = useCategoriesStore()
 
 onMounted(() => {
   tasks.fetchTasks()
@@ -22,7 +23,11 @@ async function breakDownGoal() {
   Object.assign(breakdownState, { loading: true, error: '', added: 0 })
   suggestions.value = []
   try {
-    const { tasks: list } = await callCoach('breakdown', { goal: goal.value })
+    const { tasks: list } = await callCoach('breakdown', {
+      goal: goal.value,
+      // the AI picks from YOUR categories, including ones you created
+      categories: categories.all.map(({ key, label }) => ({ key, label }))
+    })
     suggestions.value = list.map((t) => ({ ...t, selected: true }))
   } catch (e) {
     breakdownState.error = e.message
@@ -63,7 +68,7 @@ async function planMyDay() {
       tasks: openTasks.value.slice(0, 40).map((t) => ({
         id: t.id,
         title: t.title,
-        category: t.category,
+        category: categories.labelOf(t.category),
         status: t.status,
         due_at: t.due_at,
         overdue: overdueTasks.value.includes(t)
@@ -93,7 +98,10 @@ async function getCheckin() {
     const { message } = await callCoach('checkin', {
       stats: {
         streak: stats.streak,
-        completedThisWeek: stats.weekByCategory,
+        // labelled by name so the coach can mention them, e.g. { "Job hunt": 2 }
+        completedThisWeek: Object.fromEntries(
+          categories.all.map((c) => [c.label, stats.weekByCategory[c.key] ?? 0])
+        ),
         openTasks: openTasks.value.length,
         overdueTasks: overdueTasks.value.length,
         focusMinutesToday: last7[last7.length - 1].minutes,
@@ -146,7 +154,7 @@ async function getCheckin() {
               <p class="text-base-content/70 text-sm">{{ s.notes }}</p>
             </div>
             <select v-model="s.category" class="select select-sm w-auto" aria-label="Category">
-              <option v-for="c in categoryList" :key="c.value" :value="c.value">{{ c.label }}</option>
+              <option v-for="c in categories.all" :key="c.key" :value="c.key">{{ c.label }}</option>
             </select>
           </li>
         </ul>
