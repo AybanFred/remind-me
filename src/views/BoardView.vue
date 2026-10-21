@@ -1,19 +1,22 @@
 <script setup>
-import { nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { nextTick, onMounted, reactive, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { CalendarClock } from 'lucide-vue-next'
+import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
+import { useToastStore } from '@/stores/toast'
+import { categories } from '@/lib/categories'
 import { formatDue } from '@/lib/dates'
-import AppHeader from '@/components/AppHeader.vue'
 
 const tasks = useTasksStore()
-const error = ref('')
+const rewards = useRewardsStore()
+const toast = useToastStore()
 
 const columnInfo = [
-  { status: 'todo', title: 'To Do' },
-  { status: 'doing', title: 'Doing' },
-  { status: 'done', title: 'Done' }
+  { status: 'todo', title: 'To Do', dot: 'bg-base-content/40' },
+  { status: 'doing', title: 'Doing', dot: 'bg-primary' },
+  { status: 'done', title: 'Done', dot: 'bg-success' }
 ]
-const categoryLabels = { upskilling: 'Upskilling', job_hunt: 'Job hunt', daily: 'Daily' }
 
 // The draggable library needs one array per column that it is allowed to reorder.
 // We build those arrays from the store's task list, sorted by `position`.
@@ -40,11 +43,12 @@ onMounted(async () => {
 // `columns[status]` with the new order, then save that column to Supabase.
 async function onDrop(status) {
   await nextTick()
-  error.value = ''
   try {
-    await tasks.saveColumn(status, columns[status])
+    const { completed } = await tasks.saveColumn(status, columns[status])
+    // A card dropped into Done is a finished task, so celebrate (once, even if several moved).
+    if (completed.length) rewards.celebrate({ category: completed[0].category })
   } catch (e) {
-    error.value = `Could not save the move: ${e.message}`
+    toast.error(`Could not save the move: ${e.message}`)
     await tasks.fetchTasks() // put the board back to what the database really has
   }
 }
@@ -55,25 +59,42 @@ function isOverdue(task) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl space-y-6 p-4">
-    <AppHeader />
+  <div class="space-y-4">
+    <p v-if="tasks.error" class="alert alert-error alert-soft">{{ tasks.error }}</p>
 
-    <p v-if="error" class="text-error">{{ error }}</p>
-    <p v-if="tasks.error" class="text-error">{{ tasks.error }}</p>
-    <span v-if="tasks.loading" class="loading loading-spinner"></span>
+    <p class="text-base-content/60 text-sm md:hidden">
+      Swipe sideways for the other columns. Press and hold a card to drag it.
+    </p>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <section v-for="col in columnInfo" :key="col.status" class="bg-base-200 rounded-box p-3">
-        <h2 class="mb-3 flex items-center justify-between font-semibold">
+    <!-- Loading placeholders -->
+    <div v-if="tasks.loading && !tasks.tasks.length" class="grid gap-4 md:grid-cols-3">
+      <div v-for="n in 3" :key="n" class="skeleton h-64"></div>
+    </div>
+
+    <!-- On phones the columns sit side by side and you swipe between them; on desktop they share the row. -->
+    <div
+      v-else
+      class="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0"
+    >
+      <section
+        v-for="col in columnInfo"
+        :key="col.status"
+        class="bg-base-200 rounded-box min-w-[85%] snap-center p-3 md:min-w-0"
+      >
+        <h2 class="mb-3 flex items-center gap-2 font-semibold">
+          <span class="size-2.5 rounded-full" :class="col.dot"></span>
           {{ col.title }}
-          <span class="badge badge-neutral">{{ columns[col.status].length }}</span>
+          <span class="badge badge-neutral badge-sm ml-auto">{{ columns[col.status].length }}</span>
         </h2>
 
-        <!-- group="tasks" is what lets cards move between the three columns -->
+        <!-- group="tasks" lets cards move between the three columns.
+             On touch screens a short press-and-hold starts the drag, so normal scrolling still works. -->
         <VueDraggable
           v-model="columns[col.status]"
           group="tasks"
           :animation="150"
+          :delay="150"
+          :delay-on-touch-only="true"
           ghost-class="opacity-40"
           class="min-h-24 space-y-2"
           @add="onDrop(col.status)"
@@ -84,20 +105,34 @@ function isOverdue(task) {
             :key="task.id"
             class="card bg-base-100 cursor-grab p-3 shadow-sm active:cursor-grabbing"
           >
-            <p class="font-medium" :class="{ 'line-through opacity-50': task.status === 'done' }">
+            <p
+              class="font-medium wrap-break-word"
+              :class="{ 'line-through opacity-50': task.status === 'done' }"
+            >
               {{ task.title }}
             </p>
-            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
-              <span class="badge badge-soft badge-primary">{{ categoryLabels[task.category] }}</span>
+            <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <span class="badge badge-soft badge-sm" :class="categories[task.category].badge">
+                {{ categories[task.category].label }}
+              </span>
               <span
                 v-if="task.due_at"
+                class="flex items-center gap-1"
                 :class="isOverdue(task) ? 'text-error font-semibold' : 'text-base-content/60'"
               >
+                <CalendarClock class="size-3.5" />
                 {{ isOverdue(task) ? 'Overdue · ' : '' }}{{ formatDue(task.due_at) }}
               </span>
             </div>
           </article>
         </VueDraggable>
+
+        <p
+          v-if="!columns[col.status].length"
+          class="text-base-content/40 pointer-events-none -mt-20 pb-8 text-center text-sm"
+        >
+          Drop tasks here
+        </p>
       </section>
     </div>
   </div>

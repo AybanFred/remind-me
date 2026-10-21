@@ -1,7 +1,8 @@
 // daisyUI themes are switched by putting data-theme="name" on the <html> element.
 // We remember the choice in localStorage so it survives a refresh.
 
-export const themes = ['light', 'dark', 'cupcake', 'emerald', 'dracula', 'nord', 'sunset', 'synthwave']
+// 'remind' and 'remind-dark' are our own brand themes (defined in assets/main.css).
+export const themes = ['remind', 'remind-dark', 'light', 'dark', 'cupcake', 'emerald', 'dracula', 'nord', 'sunset', 'synthwave']
 
 const KEY = 'theme'
 

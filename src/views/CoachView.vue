@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { callCoach } from '@/lib/coach'
 import { useStatsStore } from '@/stores/stats'
 import { useTasksStore } from '@/stores/tasks'
-import AppHeader from '@/components/AppHeader.vue'
+import { categoryList } from '@/lib/categories'
 
 const tasks = useTasksStore()
 const stats = useStatsStore()
@@ -12,8 +12,6 @@ onMounted(() => {
   tasks.fetchTasks()
   stats.fetchStats()
 })
-
-const categoryLabels = { upskilling: 'Upskilling', job_hunt: 'Job hunt', daily: 'Daily' }
 
 // ---------- 1. Break a goal into tasks ----------
 const goal = ref('')
@@ -112,9 +110,7 @@ async function getCheckin() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-6 p-4">
-    <AppHeader />
-
+  <div class="space-y-5">
     <!-- 1. Break a goal into tasks -->
     <section class="card card-border bg-base-100 space-y-3 p-5 shadow-sm">
       <h2 class="font-semibold">Break a goal into tasks</h2>
@@ -150,9 +146,7 @@ async function getCheckin() {
               <p class="text-base-content/70 text-sm">{{ s.notes }}</p>
             </div>
             <select v-model="s.category" class="select select-sm w-auto" aria-label="Category">
-              <option v-for="(label, value) in categoryLabels" :key="value" :value="value">
-                {{ label }}
-              </option>
+              <option v-for="c in categoryList" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
           </li>
         </ul>

@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import { Plus } from 'lucide-vue-next'
+import { categoryList } from '@/lib/categories'
 import { isoToLocalInput, localInputToIso } from '@/lib/dates'
 
 // Used for BOTH adding a new task and editing an existing one.
@@ -13,12 +15,16 @@ const props = defineProps({
 })
 const emit = defineEmits(['cancel'])
 
+const titleInput = ref(null)
 const title = ref(props.initial?.title ?? '')
 const notes = ref(props.initial?.notes ?? '')
 const category = ref(props.initial?.category ?? 'daily')
 const dueAt = ref(isoToLocalInput(props.initial?.due_at))
 const error = ref('')
 const saving = ref(false)
+
+// Lets the page focus the title box (used by the "N" keyboard shortcut).
+defineExpose({ focus: () => titleInput.value?.focus() })
 
 async function onSubmit() {
   error.value = ''
@@ -34,6 +40,7 @@ async function onSubmit() {
       title.value = ''
       notes.value = ''
       dueAt.value = ''
+      titleInput.value?.focus() // ready for the next task
     }
   } catch (e) {
     error.value = e.message
@@ -44,12 +51,13 @@ async function onSubmit() {
 </script>
 
 <template>
-  <form class="card card-border bg-base-100 space-y-3 p-4 shadow-sm" @submit.prevent="onSubmit">
+  <form class="card card-border bg-base-100 space-y-3 p-4" @submit.prevent="onSubmit">
     <input
+      ref="titleInput"
       v-model="title"
       required
       placeholder="What needs doing?"
-      class="input w-full"
+      class="input input-lg w-full font-medium"
     />
     <textarea
       v-model="notes"
@@ -57,33 +65,20 @@ async function onSubmit() {
       placeholder="Notes (optional)"
       class="textarea w-full"
     />
-    <div class="flex flex-wrap gap-3">
-      <select v-model="category" class="select w-auto">
-        <option value="upskilling">Upskilling</option>
-        <option value="job_hunt">Job hunt</option>
-        <option value="daily">Daily</option>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <select v-model="category" class="select w-full" aria-label="Category">
+        <option v-for="c in categoryList" :key="c.value" :value="c.value">{{ c.label }}</option>
       </select>
-      <input
-        v-model="dueAt"
-        type="datetime-local"
-        class="input w-auto"
-      />
+      <input v-model="dueAt" type="datetime-local" class="input w-full" aria-label="Due date" />
     </div>
     <p v-if="error" class="text-error text-sm">{{ error }}</p>
     <div class="flex gap-2">
-      <button
-        type="submit"
-        :disabled="saving"
-        class="btn btn-primary"
-      >
+      <button type="submit" :disabled="saving" class="btn btn-primary">
+        <span v-if="saving" class="loading loading-spinner loading-sm"></span>
+        <Plus v-else-if="!initial" class="size-4" />
         {{ submitLabel }}
       </button>
-      <button
-        v-if="initial"
-        type="button"
-        class="btn btn-ghost"
-        @click="emit('cancel')"
-      >
+      <button v-if="initial" type="button" class="btn btn-ghost" @click="emit('cancel')">
         Cancel
       </button>
     </div>

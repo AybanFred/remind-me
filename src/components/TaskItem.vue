@@ -1,40 +1,49 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { CalendarClock, Pencil, Trash2 } from 'lucide-vue-next'
+import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
+import { useToastStore } from '@/stores/toast'
+import { categories } from '@/lib/categories'
 import { formatDue } from '@/lib/dates'
 import TaskForm from '@/components/TaskForm.vue'
 
 const props = defineProps({ task: { type: Object, required: true } })
 
 const tasks = useTasksStore()
+const rewards = useRewardsStore()
+const toast = useToastStore()
 const editing = ref(false)
-const error = ref('')
 
 const isDone = computed(() => props.task.status === 'done')
 const isOverdue = computed(
   () => !isDone.value && props.task.due_at && new Date(props.task.due_at) < new Date()
 )
 
-const categoryLabels = { upskilling: 'Upskilling', job_hunt: 'Job hunt', daily: 'Daily' }
-
-// Wraps a store call so a failure shows a message instead of failing silently.
-async function run(action) {
-  error.value = ''
+async function toggle(event) {
+  // The confetti starts where the checkbox is on screen (as a fraction of the window size).
+  const box = event.target.getBoundingClientRect()
+  const origin = {
+    x: (box.left + box.width / 2) / window.innerWidth,
+    y: (box.top + box.height / 2) / window.innerHeight
+  }
   try {
-    await action()
+    await tasks.toggleDone(props.task)
+    if (props.task.status === 'done') rewards.celebrate({ category: props.task.category, origin })
   } catch (e) {
-    error.value = e.message
+    toast.error(`Could not update the task: ${e.message}`)
   }
 }
 
 async function save(changes) {
   await tasks.updateTask(props.task.id, changes)
   editing.value = false
+  toast.success('Task saved')
 }
 </script>
 
 <template>
-  <li class="card card-border bg-base-100 p-4 shadow-sm transition hover:shadow-md">
+  <li class="card card-border bg-base-100 p-4 transition-colors" :class="{ 'opacity-70': isDone }">
     <TaskForm
       v-if="editing"
       :initial="task"
@@ -47,26 +56,39 @@ async function save(changes) {
       <input
         type="checkbox"
         :checked="isDone"
-        class="checkbox checkbox-primary mt-1"
-        @change="run(() => tasks.toggleDone(task))"
+        class="checkbox checkbox-primary mt-0.5"
+        :aria-label="isDone ? 'Mark as not done' : 'Mark as done'"
+        @change="toggle"
       />
       <div class="min-w-0 flex-1">
-        <p class="font-medium" :class="{ 'line-through opacity-50': isDone }">{{ task.title }}</p>
-        <p v-if="task.notes" class="text-base-content/70 text-sm">{{ task.notes }}</p>
-        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
-          <span class="badge badge-soft badge-primary">
-            {{ categoryLabels[task.category] }}
+        <p class="font-medium wrap-break-word" :class="{ 'line-through': isDone }">{{ task.title }}</p>
+        <p v-if="task.notes" class="text-base-content/70 mt-0.5 text-sm wrap-break-word">{{ task.notes }}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          <span class="badge badge-soft" :class="categories[task.category].badge">
+            {{ categories[task.category].label }}
           </span>
-          <span v-if="task.due_at" :class="isOverdue ? 'text-error font-semibold' : 'text-base-content/60'">
-            {{ isOverdue ? 'Overdue · ' : 'Due ' }}{{ formatDue(task.due_at) }}
+          <span
+            v-if="task.due_at"
+            class="flex items-center gap-1"
+            :class="isOverdue ? 'text-error font-semibold' : 'text-base-content/60'"
+          >
+            <CalendarClock class="size-3.5" />
+            {{ isOverdue ? 'Overdue · ' : '' }}{{ formatDue(task.due_at) }}
           </span>
         </div>
-        <p v-if="error" class="text-error mt-1 text-sm">{{ error }}</p>
       </div>
-      <button class="btn btn-ghost btn-sm" @click="editing = true">Edit</button>
-      <button class="btn btn-ghost btn-sm text-error" @click="run(() => tasks.removeTask(task.id))">
-        Delete
-      </button>
+      <div class="flex shrink-0">
+        <button class="btn btn-ghost btn-square btn-sm" aria-label="Edit task" @click="editing = true">
+          <Pencil class="size-4" />
+        </button>
+        <button
+          class="btn btn-ghost btn-square btn-sm text-error"
+          aria-label="Delete task"
+          @click="tasks.removeTaskWithUndo(task)"
+        >
+          <Trash2 class="size-4" />
+        </button>
+      </div>
     </div>
   </li>
 </template>

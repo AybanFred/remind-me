@@ -1,0 +1,80 @@
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { ChartColumn, Columns3, ListTodo, Sparkles, Timer } from 'lucide-vue-next'
+import { useFocusStore } from '@/stores/focus'
+import AccountMenu from '@/components/AccountMenu.vue'
+
+// The frame around every logged-in page: top bar, page content, and (on phones) a bottom tab bar.
+const focus = useFocusStore()
+const route = useRoute()
+
+const nav = [
+  { to: '/', label: 'List', icon: ListTodo },
+  { to: '/board', label: 'Board', icon: Columns3 },
+  { to: '/focus', label: 'Focus', icon: Timer },
+  { to: '/dashboard', label: 'Stats', icon: ChartColumn },
+  { to: '/coach', label: 'Coach', icon: Sparkles }
+]
+
+// Each route says how wide its content may be (route.meta.size). The board needs the most room.
+const widths = { narrow: 'max-w-2xl', medium: 'max-w-3xl', wide: 'max-w-5xl' }
+const contentWidth = computed(() => widths[route.meta.size] ?? widths.narrow)
+
+</script>
+
+<template>
+  <div class="min-h-screen">
+    <header
+      class="bg-base-100/85 border-base-300 sticky top-0 z-30 border-b backdrop-blur"
+      style="padding-top: env(safe-area-inset-top)"
+    >
+      <div class="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
+        <RouterLink to="/" class="flex items-center gap-2 text-lg font-bold">
+          <img src="/icon.svg" alt="" class="size-8" />
+          <span>Remind Me</span>
+        </RouterLink>
+
+        <!-- Desktop navigation. Phones use the tab bar at the bottom instead. -->
+        <nav class="ml-4 hidden gap-1 md:flex" aria-label="Main">
+          <RouterLink
+            v-for="item in nav"
+            :key="item.to"
+            :to="item.to"
+            class="hover:bg-base-200 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium"
+            active-class="!bg-primary/10 text-primary"
+          >
+            <component :is="item.icon" class="size-4" />
+            {{ item.label }}
+          </RouterLink>
+        </nav>
+
+        <div class="ml-auto flex items-center gap-2">
+          <!-- Shows the running timer on every page and links back to the Focus page -->
+          <RouterLink
+            v-if="focus.running"
+            to="/focus"
+            class="badge badge-primary gap-1 tabular-nums"
+          >
+            <Timer class="size-3.5" />
+            {{ focus.display }}
+          </RouterLink>
+
+          <AccountMenu />
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main mx-auto px-4 pt-6" :class="contentWidth">
+      <slot />
+    </main>
+
+    <!-- Phone tab bar -->
+    <nav class="dock md:hidden" aria-label="Main">
+      <RouterLink v-for="item in nav" :key="item.to" :to="item.to" active-class="dock-active">
+        <component :is="item.icon" class="size-5" />
+        <span class="dock-label">{{ item.label }}</span>
+      </RouterLink>
+    </nav>
+  </div>
+</template>

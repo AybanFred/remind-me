@@ -1,4 +1,107 @@
 @import "tailwindcss";
+
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark, cupcake, emerald, dracula, nord, sunset, synthwave;
+  /* The built-in themes stay available in the theme picker. Our own two are defined below. */
+  themes: light, dark, cupcake, emerald, dracula, nord, sunset, synthwave;
+}
+
+/* ---------- Remind Me brand themes ----------
+   Indigo-violet primary (matches the app icon), teal secondary, warm orange accent.
+   Categories use all three: upskilling = primary, job hunt = secondary, daily = accent. */
+
+@plugin "daisyui/theme" {
+  name: "remind";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(99% 0.003 285);
+  --color-base-200: oklch(96.5% 0.008 285);
+  --color-base-300: oklch(92% 0.013 285);
+  --color-base-content: oklch(24% 0.03 285);
+
+  --color-primary: oklch(52% 0.23 277);
+  --color-primary-content: oklch(98% 0.01 277);
+  --color-secondary: oklch(66% 0.12 190);
+  --color-secondary-content: oklch(18% 0.04 190);
+  --color-accent: oklch(74% 0.16 55);
+  --color-accent-content: oklch(20% 0.05 55);
+  --color-neutral: oklch(30% 0.04 285);
+  --color-neutral-content: oklch(96% 0.01 285);
+
+  --color-info: oklch(68% 0.14 240);
+  --color-info-content: oklch(18% 0.04 240);
+  --color-success: oklch(66% 0.17 155);
+  --color-success-content: oklch(18% 0.05 155);
+  --color-warning: oklch(80% 0.16 85);
+  --color-warning-content: oklch(22% 0.05 85);
+  --color-error: oklch(60% 0.22 25);
+  --color-error-content: oklch(98% 0.01 25);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "remind-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(21% 0.03 285);
+  --color-base-200: oklch(18% 0.03 285);
+  --color-base-300: oklch(14.5% 0.03 285);
+  --color-base-content: oklch(93% 0.01 285);
+
+  --color-primary: oklch(68% 0.19 280);
+  --color-primary-content: oklch(15% 0.05 280);
+  --color-secondary: oklch(72% 0.12 190);
+  --color-secondary-content: oklch(16% 0.04 190);
+  --color-accent: oklch(77% 0.15 55);
+  --color-accent-content: oklch(18% 0.05 55);
+  --color-neutral: oklch(27% 0.04 285);
+  --color-neutral-content: oklch(94% 0.01 285);
+
+  --color-info: oklch(72% 0.13 240);
+  --color-info-content: oklch(16% 0.04 240);
+  --color-success: oklch(72% 0.16 155);
+  --color-success-content: oklch(16% 0.05 155);
+  --color-warning: oklch(82% 0.15 85);
+  --color-warning-content: oklch(20% 0.05 85);
+  --color-error: oklch(68% 0.2 25);
+  --color-error-content: oklch(15% 0.04 25);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* ---------- Typography ---------- */
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent; /* no grey flash when tapping on phones */
+}
+
+/* On phones the bottom tab bar is fixed to the screen, so leave room for it under the content. */
+.app-main {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .app-main {
+    padding-bottom: 2rem;
+  }
 }

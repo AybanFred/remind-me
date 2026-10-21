@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import { calcStreak, completedThisWeek, dateKey, focusMinutesPerDay } from '@/lib/stats'
+import { levelProgress, XP_PER_TASK } from '@/lib/rewards'
 
 export const useStatsStore = defineStore('stats', {
   state: () => ({
@@ -22,7 +23,15 @@ export const useStatsStore = defineStore('stats', {
     weekTotal() {
       return Object.values(this.weekByCategory).reduce((sum, n) => sum + n, 0)
     },
-    last7Days: (state) => focusMinutesPerDay(state.sessions, 7)
+    last7Days: (state) => focusMinutesPerDay(state.sessions, 7),
+
+    // 10 XP per completed task plus 1 XP per focus minute, worked out from the same data as everything else.
+    xp: (state) =>
+      state.completedTasks.length * XP_PER_TASK +
+      state.sessions.reduce((sum, s) => sum + s.minutes_focused, 0),
+    level() {
+      return levelProgress(this.xp)
+    }
   },
 
   actions: {

@@ -31,10 +31,18 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center p-4">
+  <div
+    class="from-primary/15 via-base-100 to-secondary/15 flex min-h-screen items-center justify-center bg-linear-to-br p-4"
+  >
     <div class="card card-border bg-base-100 w-full max-w-sm shadow-md">
       <div class="card-body gap-3">
-        <h1 class="card-title text-2xl">{{ mode === 'login' ? 'Log in' : 'Sign up' }}</h1>
+        <div class="mb-2 flex flex-col items-center gap-2 text-center">
+          <img src="/icon.svg" alt="" class="size-16" />
+          <h1 class="text-2xl font-bold">Remind Me</h1>
+          <p class="text-base-content/60 text-sm">
+            {{ mode === 'login' ? 'Welcome back. Pick up where you left off.' : 'Create an account to start planning.' }}
+          </p>
+        </div>
 
         <button class="btn btn-outline" @click="auth.signInWithGoogle()">Continue with Google</button>
 

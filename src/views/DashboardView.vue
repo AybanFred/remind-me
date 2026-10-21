@@ -4,17 +4,12 @@ import { Bar } from 'vue-chartjs'
 import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from 'chart.js'
 import { useStatsStore } from '@/stores/stats'
 import { formatMinutes } from '@/lib/stats'
-import AppHeader from '@/components/AppHeader.vue'
+import { Flame, Trophy } from 'lucide-vue-next'
+import { categoryList } from '@/lib/categories'
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip)
 
 const stats = useStatsStore()
-
-const categories = [
-  { key: 'upskilling', label: 'Upskilling' },
-  { key: 'job_hunt', label: 'Job hunt' },
-  { key: 'daily', label: 'Daily' }
-]
 
 // Chart.js draws on a <canvas>, which can't use Tailwind classes. So we read the active
 // daisyUI theme's colors from CSS variables and re-read them whenever the theme changes.
@@ -78,16 +73,38 @@ const weekFocusMinutes = computed(() => stats.last7Days.reduce((sum, d) => sum +
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl space-y-6 p-4">
-    <AppHeader />
+  <div class="space-y-6">
 
     <p v-if="stats.error" class="text-error">{{ stats.error }}</p>
     <span v-if="stats.loading" class="loading loading-spinner"></span>
 
+    <section class="card card-border bg-base-100 p-5">
+      <div class="flex items-center gap-4">
+        <div class="bg-primary text-primary-content flex size-14 shrink-0 flex-col items-center justify-center rounded-full">
+          <Trophy class="size-4" />
+          <span class="text-lg leading-none font-bold tabular-nums">{{ stats.level.level }}</span>
+        </div>
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="flex items-baseline justify-between gap-2">
+            <h2 class="font-semibold">Level {{ stats.level.level }}</h2>
+            <span class="text-base-content/60 text-sm tabular-nums">
+              {{ stats.level.xpIntoLevel }} / {{ stats.level.xpForNext }} XP
+            </span>
+          </div>
+          <progress class="progress progress-primary w-full" :value="stats.level.percent" max="100"></progress>
+          <p class="text-base-content/60 text-xs">
+            {{ stats.xp }} XP in total. Earn 10 XP per finished task and 1 XP per focus minute.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <section class="grid gap-4 sm:grid-cols-2">
       <div class="card card-border bg-base-100 p-5 shadow-sm">
-        <h2 class="text-base-content/60 text-sm">Current streak</h2>
-        <p class="text-primary text-5xl font-bold tabular-nums">
+        <h2 class="text-base-content/60 flex items-center gap-1.5 text-sm">
+          <Flame class="text-accent size-4" /> Current streak
+        </h2>
+        <p class="text-accent text-5xl font-bold tabular-nums">
           {{ stats.streak }}
           <span class="text-base-content/60 text-lg font-normal">{{ stats.streak === 1 ? 'day' : 'days' }}</span>
         </p>
@@ -100,9 +117,9 @@ const weekFocusMinutes = computed(() => stats.last7Days.reduce((sum, d) => sum +
         <h2 class="text-base-content/60 text-sm">Tasks completed this week</h2>
         <p class="text-5xl font-bold tabular-nums">{{ stats.weekTotal }}</p>
         <ul class="mt-2 space-y-1 text-sm">
-          <li v-for="c in categories" :key="c.key" class="flex justify-between">
-            <span>{{ c.label }}</span>
-            <span class="font-medium tabular-nums">{{ stats.weekByCategory[c.key] }}</span>
+          <li v-for="c in categoryList" :key="c.value" class="flex items-center justify-between">
+            <span class="badge badge-soft badge-sm" :class="c.badge">{{ c.label }}</span>
+            <span class="font-medium tabular-nums">{{ stats.weekByCategory[c.value] }}</span>
           </li>
         </ul>
       </div>

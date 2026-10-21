@@ -145,6 +145,13 @@ export const useRemindersStore = defineStore('reminders', {
       write(KEYS_STORAGE, JSON.stringify([...sent].slice(-200))) // keep the list from growing forever
     },
 
+    // Used by other features (e.g. the focus timer) to show a notification right now,
+    // if the user has allowed notifications.
+    async notifyNow(title, body) {
+      if (this.permission !== 'granted' || !this.enabled) return
+      await notify(title, body, 'timer')
+    },
+
     // Lets you check that your browser/OS actually show notifications, independent of any task.
     sendTest() {
       return notify('Remind Me', 'Test notification - reminders are working.', 'test')

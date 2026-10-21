@@ -26,7 +26,7 @@ I'm a junior developer who was job hunting and upskilling at the same time, and 
 - **Kanban board:** drag cards between To Do, Doing and Done, or reorder within a column. Status and order are saved to the database, so they survive a reload.
 
 **Focus and progress**
-- **Focus timer:** a 25-minute focus and 5-minute break Pomodoro, optionally linked to a task. Sessions are saved. The countdown keeps running as you move between pages, shows in the header and in the browser tab title, and stays accurate in background tabs.
+- **Focus timer:** a 25-minute focus and 5-minute break Pomodoro, optionally linked to a task. Sessions are saved. The countdown keeps running as you move between pages, shows in the header and in the browser tab title, stays accurate in background tabs, and **survives a page refresh**. A chime, vibration and notification announce the end of a session.
 - **Dashboard:** current streak, tasks completed this week by category, and a chart of focus hours over the last 7 days, all computed from real data.
 
 **Staying on track**
@@ -34,8 +34,12 @@ I'm a junior developer who was job hunting and upskilling at the same time, and 
 - **AI coach:** break a goal into suggested tasks that you review and add in bulk, get a daily plan from your open tasks and due dates, and a short check-in based on your real stats.
 
 **Platform**
-- **Auth:** email/password and Google sign-in. Each user can only ever see their own data.
-- **Themes:** eight daisyUI themes, plus "follow my system".
+- **Auth and profile:** email/password and Google sign-in. Each user can only ever see their own data. Users can set a display name and upload a profile photo (cropped and shrunk in the browser before it is stored).
+- **Rewards:** finishing a task fires confetti in the theme colors and a message that adapts to what you just did (first task of the day, 3 and 5 in a day, streak milestones, level-ups). XP and levels are worked out from your tasks and focus time, with no extra tables.
+- **Custom design:** a branded light and dark theme (indigo, teal and orange), the Plus Jakarta Sans typeface, color-coded categories, plus six more daisyUI themes and "follow my system".
+- **Personalization:** users can pick their own primary, secondary and accent colors (text on buttons adjusts automatically to stay readable) and choose a font from a list or any Google Font by name. Settings sync across devices through the user account.
+- **Made for phones:** bottom tab bar with icons, swipeable Kanban columns, press-and-hold to drag on touch screens, and iPhone safe-area spacing.
+- **Smooth interactions:** toast messages, loading skeletons, empty states, delete with a 5-second undo, and an `N` keyboard shortcut to add a task.
 - **Installable PWA:** add it to your home screen. The app shell is cached so it opens fast.
 
 ## Tech stack
@@ -47,7 +51,10 @@ I'm a junior developer who was job hunting and upskilling at the same time, and 
 | Language | JavaScript and TypeScript | Mostly JS, with TypeScript for config, tests and the entry file |
 | Routing | Vue Router 5 | Pages and the login guard |
 | State | Pinia 4 | Stores for tasks, focus timer, stats, reminders and auth |
-| Styling | Tailwind CSS 4 and daisyUI 5 | Layout, components and themes |
+| Styling | Tailwind CSS 4 and daisyUI 5 | Layout, components, and the custom brand themes |
+| Icons and fonts | Lucide, Fontsource (Plus Jakarta Sans), Google Fonts on demand | Icons, the default typeface, and user-chosen fonts |
+| Effects | canvas-confetti | Task-completion celebration |
+| Storage | Supabase Storage | Profile photos, with per-user folder policies |
 | Database | Supabase (PostgreSQL) | Tasks and focus sessions |
 | Auth | Supabase Auth | Email/password and Google OAuth |
 | Security | Postgres Row Level Security | Per-user data isolation |
@@ -77,6 +84,7 @@ flowchart LR
 - **Business rules are plain functions.** Streak, weekly counts, chart data and reminder selection live in `src/lib` as pure functions with unit tests. They have no Vue or database code, so they are easy to test and read.
 - **The database enforces security.** The browser talks to Postgres directly, so every table has Row Level Security. Even if the frontend had a bug, one user could not read another's rows.
 - **The AI key never reaches the browser.** The app calls an Edge Function with the user's login token. The function limits the input size, calls Groq, validates the JSON that comes back, and returns only the result. Task ids returned by the model are checked against the real task list.
+- **Personalization is layered on the theme.** Custom colors are CSS variables set on the page, so they override the chosen theme and removing them hands control back to it. Settings coming from storage or the account are validated before use, and font names are restricted to plain characters because they end up in a URL and in CSS.
 - **Dates use the user's local time zone** for streaks and "this week", so a task finished at 11 pm counts for that day.
 - **The timer uses the clock, not ticks.** It stores an end time and compares it to the real clock, so it stays correct when the browser slows down background tabs.
 - **Moves feel instant.** Dragging a card updates the screen first and saves to the database in the background. If the save fails, the board reloads from the database and shows an error.
@@ -94,7 +102,7 @@ Both tables have a policy that limits every read and write to rows where `user_i
 
 ```
 src/
-├── components/     Reusable UI: header, task form, task row, theme picker, reminder banner
+├── components/     Reusable UI: app shell and tab bar, task form, task row, toasts, theme picker, reminder banner
 ├── views/          One file per page: Auth, Tasks, Board, Focus, Dashboard, Coach
 ├── stores/         Pinia stores (the only code that calls Supabase)
 ├── lib/            Pure helpers: stats, reminders, dates, theme, Supabase client, AI client
@@ -133,6 +141,7 @@ In the Supabase SQL Editor, run these in order:
 
 1. `supabase/reference/tasks.sql`
 2. `supabase/migrations/20261021000000_focus_sessions.sql`
+3. `supabase/migrations/20261022000000_avatars_bucket.sql` (profile photo storage)
 
 ### Google sign-in (optional)
 
@@ -178,19 +187,19 @@ The app is deployed on Vercel straight from this repository. Every push to `main
 npm run test:unit
 ```
 
-The unit tests cover the logic that is easiest to get wrong: streak counting (including a gap in the days and an empty "today"), the Monday week start, per-category weekly counts, 7-day focus totals, and which reminders should fire (including never repeating one and re-firing when a due date changes).
+The unit tests cover the logic that is easiest to get wrong, including XP and level maths, which celebration to show, readable text colors, and restoring the focus timer after a refresh (still running, finished while away, or paused): streak counting (including a gap in the days and an empty "today"), the Monday week start, per-category weekly counts, 7-day focus totals, and which reminders should fire (including never repeating one and re-firing when a due date changes).
 
 ## Known limitations
 
 - **Reminders only fire while the app is open** (in a tab or the installed app). Delivering them when the app is fully closed needs web push, which is not built yet.
-- **The focus timer lives in memory,** so refreshing the page mid-session resets it.
+- **The timer only counts while the app is open on screen on iPhones,** because iOS pauses background pages. It stays correct when you return, but it cannot alert you with the phone locked.
 - **The AI coach uses a free-tier model,** so it has daily limits and its suggestions are helpful but not perfect.
+- **Custom fonts need a connection** the first time they are used, since they come from Google Fonts. This sends a request to Google.
 - **No offline data.** The app shell loads offline, but tasks need a connection to Supabase.
 
 ## Roadmap
 
 - Web push notifications that arrive when the app is closed
-- Saving the focus timer across refreshes
 - Recurring tasks
 - Offline support with sync
 - Screenshots and a short demo video in this README
