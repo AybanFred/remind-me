@@ -4,6 +4,7 @@ import { useTasksStore } from '@/stores/tasks'
 import TaskForm from '@/components/TaskForm.vue'
 import TaskItem from '@/components/TaskItem.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import ReminderBanner from '@/components/ReminderBanner.vue'
 
 const tasks = useTasksStore()
 
@@ -20,6 +21,8 @@ onMounted(() => tasks.fetchTasks())
 <template>
   <div class="mx-auto max-w-2xl space-y-6 p-4">
     <AppHeader />
+
+    <ReminderBanner />
 
     <TaskForm :on-save="tasks.addTask" />
 
