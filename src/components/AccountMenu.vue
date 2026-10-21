@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { Bell, LogOut, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useRemindersStore } from '@/stores/reminders'
-import ThemePicker from '@/components/ThemePicker.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 
 const auth = useAuthStore()
@@ -68,11 +67,6 @@ async function logout() {
           <p class="text-base-content/60 truncate text-xs">{{ auth.user?.email }}</p>
         </div>
       </div>
-
-      <label class="block text-sm">
-        <span class="mb-1 block font-medium">Theme</span>
-        <ThemePicker />
-      </label>
 
       <RouterLink to="/settings" class="btn btn-ghost btn-sm w-full justify-start">
         <Settings class="size-4" /> Profile and appearance
