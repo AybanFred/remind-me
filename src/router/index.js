@@ -5,6 +5,7 @@ import TasksView from '@/views/TasksView.vue'
 import BoardView from '@/views/BoardView.vue'
 import FocusView from '@/views/FocusView.vue'
 import DashboardView from '@/views/DashboardView.vue'
+import CoachView from '@/views/CoachView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,6 +14,7 @@ const router = createRouter({
     { path: '/board', name: 'board', component: BoardView, meta: { requiresAuth: true } },
     { path: '/focus', name: 'focus', component: FocusView, meta: { requiresAuth: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
+    { path: '/coach', name: 'coach', component: CoachView, meta: { requiresAuth: true } },
     { path: '/login', name: 'login', component: AuthView }
   ]
 })

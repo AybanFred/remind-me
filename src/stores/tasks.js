@@ -47,6 +47,22 @@ export const useTasksStore = defineStore('tasks', {
       this.tasks.unshift(data)
     },
 
+    // Adds several tasks in ONE request (used when accepting the AI coach's suggestions).
+    async addTasks(list) {
+      const auth = useAuthStore()
+      const rows = list.map(({ title, notes, category }) => ({
+        user_id: auth.user.id,
+        title,
+        notes,
+        category,
+        status: 'todo',
+        position: 0
+      }))
+      const { data, error } = await supabase.from('tasks').insert(rows).select()
+      if (error) throw error
+      this.tasks.unshift(...data)
+    },
+
     async updateTask(id, changes) {
       const { data, error } = await supabase
         .from('tasks')

@@ -26,6 +26,7 @@ async function logout() {
         <RouterLink to="/board" class="tab" active-class="tab-active">Board</RouterLink>
         <RouterLink to="/focus" class="tab" active-class="tab-active">Focus</RouterLink>
         <RouterLink to="/dashboard" class="tab" active-class="tab-active">Stats</RouterLink>
+        <RouterLink to="/coach" class="tab" active-class="tab-active">Coach</RouterLink>
       </nav>
     </div>
     <div class="flex flex-wrap items-center gap-3 text-sm">
