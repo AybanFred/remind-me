@@ -1,10 +1,12 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useFocusStore } from '@/stores/focus'
 import ThemePicker from '@/components/ThemePicker.vue'
 
 // Shared top bar for every logged-in page: title, page links, theme, logout.
 const auth = useAuthStore()
+const focus = useFocusStore()
 const router = useRouter()
 
 async function logout() {
@@ -20,9 +22,15 @@ async function logout() {
       <nav class="tabs tabs-box tabs-sm">
         <RouterLink to="/" class="tab" active-class="tab-active">List</RouterLink>
         <RouterLink to="/board" class="tab" active-class="tab-active">Board</RouterLink>
+        <RouterLink to="/focus" class="tab" active-class="tab-active">Focus</RouterLink>
+        <RouterLink to="/dashboard" class="tab" active-class="tab-active">Stats</RouterLink>
       </nav>
     </div>
     <div class="flex flex-wrap items-center gap-3 text-sm">
+      <!-- Shows the running timer on every page, and links back to the Focus page -->
+      <RouterLink v-if="focus.running" to="/focus" class="badge badge-primary badge-lg tabular-nums">
+        {{ focus.display }}
+      </RouterLink>
       <ThemePicker />
       <span class="text-base-content/60 hidden sm:inline">{{ auth.user?.email }}</span>
       <button class="btn btn-outline btn-sm" @click="logout">Log out</button>
