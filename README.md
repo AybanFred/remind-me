@@ -1,70 +1,95 @@
-# remind-me-app
+# Remind Me
 
-This template should help get you started developing with Vue 3 in Vite.
+A personal productivity app for staying focused on **upskilling, job hunting and daily routines**. Plan tasks, work through them on a Kanban board, run Pomodoro focus sessions, track streaks, and get help from an AI coach. It installs on a phone like a native app.
 
-## Recommended IDE Setup
+I built it as a junior developer to solve a real problem for myself, and to practice a full-stack workflow end to end: auth, a relational database with row-level security, serverless functions, charts, and PWA deployment.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Features
 
-## Recommended Browser Setup
+- **Tasks:** add, edit, complete and delete tasks with notes, a category (upskilling, job hunt, daily) and an optional due date. Filter by category.
+- **Kanban board:** drag cards between To Do, Doing and Done, or reorder within a column. Order and status persist to the database.
+- **Focus timer:** 25-minute focus and 5-minute break Pomodoro, optionally linked to a task. Sessions are saved, and the countdown keeps running across pages and shows in the browser tab title.
+- **Dashboard:** current streak, tasks completed this week by category, and a chart of focus hours over the last 7 days, all from real data.
+- **Reminders:** browser notifications when a task is almost due or overdue, with an on/off switch. Permission is requested only after the user has a task with a due date.
+- **AI coach:** break a goal into suggested tasks you can review and add in bulk, get a daily plan from your open tasks, and a short check-in message based on your real stats.
+- **Auth:** email/password and Google sign-in. Every user only ever sees their own data.
+- **Themes:** eight daisyUI themes, plus "follow my system".
+- **Installable PWA:** works from the home screen, with the app shell cached.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Tech stack
 
-## Type Support for `.vue` Imports in TS
+| Area | Choice |
+| --- | --- |
+| Frontend | Vue 3 (Composition API), Vite, Vue Router, Pinia |
+| Styling | Tailwind CSS 4, daisyUI 5 |
+| Backend | Supabase: Postgres, Auth, Row Level Security, Edge Functions (Deno) |
+| AI | Groq API (`openai/gpt-oss-120b`), called only from the Edge Function so the key never reaches the browser |
+| Drag and drop | vue-draggable-plus |
+| Charts | Chart.js with vue-chartjs |
+| PWA | vite-plugin-pwa (Workbox) |
+| Tests | Vitest |
+| Hosting | Vercel |
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+## How it is put together
 
-## Customize configuration
+- **Pinia stores** (`src/stores`) are the only code that talks to Supabase. Components call store actions and read state.
+- **Pure logic** (`src/lib/stats.js`, `src/lib/reminders.js`) holds the streak, weekly-count and reminder-selection rules as plain functions with unit tests, separate from Vue and the database.
+- **Row Level Security** on every table means the database itself enforces that users can only read and write their own rows, even though the browser talks to it directly.
+- **The AI key stays server-side.** The browser calls the `coach` Edge Function with the user's login token. The function checks the input, calls Groq, validates the JSON that comes back, and returns only the result.
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## Running it locally
 
-## Project Setup
+You need Node 20+ and a free [Supabase](https://supabase.com) project.
 
 ```sh
+git clone https://github.com/AybanFred/remind-me.git
+cd remind-me
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+cp .env.example .env   # then fill in your own values
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+`.env` needs your Supabase **Project URL** and **anon public key** (Project Settings, API):
 
-```sh
-npm run build
+```
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+### Database
+
+In the Supabase SQL Editor, run these in order:
+
+1. `supabase/reference/tasks.sql`
+2. `supabase/migrations/20261021000000_focus_sessions.sql`
+
+### Google sign-in (optional)
+
+Enable the Google provider in Supabase (Authentication, Providers) with a Google OAuth client. In Google Cloud, the authorized redirect URI is your Supabase callback, `https://<project-ref>.supabase.co/auth/v1/callback`. In Supabase (Authentication, URL Configuration), add your site URLs (`http://localhost:5173` for development, plus your deployed domain) to the Redirect URLs.
+
+### AI coach (optional)
 
 ```sh
-npm run test:unit
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase secrets set GROQ_API_KEY=<your-groq-key>
+npx supabase functions deploy coach
 ```
 
-### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
+A free Groq key is available from [console.groq.com](https://console.groq.com).
 
-```sh
-npm run test:e2e:dev
-```
+## Scripts
 
-This runs the end-to-end tests against the Vite development server.
-It is much faster than the production build.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Type-check and build for production |
+| `npm run test:unit` | Run the unit tests |
+| `npm run lint` | Lint and format-check |
+| `npm run generate-pwa-assets` | Rebuild the PWA icons from `public/icon.svg` |
 
-But it's still recommended to test the production build with `test:e2e` before deploying (e.g. in CI environments):
+## Known limitations
 
-```sh
-npm run build
-npm run test:e2e
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+- Reminders only fire while the app is open (in a tab or the installed app). Delivering them when the app is fully closed would need web push, which is not built yet.
+- The focus timer lives in memory, so refreshing the page mid-session resets it.
+- The AI coach runs on a free-tier model, so it is subject to daily limits and its suggestions are good but not perfect.

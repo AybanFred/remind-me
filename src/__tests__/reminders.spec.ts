@@ -28,12 +28,12 @@ describe('findReminders', () => {
   it('does not repeat a reminder that was already sent', () => {
     const t = task('a', minutesFromNow(10))
     const first = findReminders([t], new Set(), now)
-    expect(findReminders([t], new Set([first[0].key]), now)).toEqual([])
+    expect(findReminders([t], new Set([first[0]!.key]), now)).toEqual([])
   })
 
   it('reminds again when the due date changes', () => {
     const original = task('a', minutesFromNow(10))
-    const sent = new Set([findReminders([original], new Set(), now)[0].key])
+    const sent = new Set([findReminders([original], new Set(), now)[0]!.key])
     const rescheduled = task('a', minutesFromNow(12))
     expect(findReminders([rescheduled], sent, now)).toHaveLength(1)
   })

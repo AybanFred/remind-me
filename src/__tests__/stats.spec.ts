@@ -64,7 +64,7 @@ describe('focusMinutesPerDay', () => {
     ]
     const result = focusMinutesPerDay(sessions, 7, today)
     expect(result).toHaveLength(7)
-    expect(result[6].key).toBe('2026-10-21')
+    expect(result[6]!.key).toBe('2026-10-21')
     expect(result.map((d) => d.minutes)).toEqual([0, 0, 0, 0, 10, 0, 50])
   })
 })

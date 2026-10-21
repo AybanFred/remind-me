@@ -10,6 +10,7 @@ const ENABLED_STORAGE = 'remindersEnabled'
 const DISMISSED_STORAGE = 'reminderPromptDismissed'
 
 let intervalId = null
+let checking = false // stops two checks running at once and sending the same reminder twice
 
 // localStorage can throw (private mode, storage disabled), so wrap it.
 function read(key) {
@@ -35,20 +36,26 @@ function loadNotifiedKeys() {
   }
 }
 
-// Returns true if the browser accepted the notification, false if it threw.
-function notify(title, body, tag) {
+// Returns true if the browser accepted the notification, false if it didn't.
+async function notify(title, body, tag) {
   try {
     const n = new Notification(title, { body, tag }) // same tag = replaces, never duplicates
     n.onclick = () => {
       window.focus()
       n.close()
     }
-    n.onerror = (e) => console.warn('[reminders] notification error', e)
     return true
-  } catch (e) {
-    // Some mobile browsers only allow notifications through a service worker (Phase 8).
-    console.warn('[reminders] could not show notification:', e)
-    return false
+  } catch {
+    // Phones don't allow "new Notification()" - they only allow notifications shown by a
+    // service worker. The installed PWA has one, so ask it to show the notification instead.
+    try {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(title, { body, tag, icon: '/pwa-192x192.png' })
+      return true
+    } catch (e) {
+      console.warn('[reminders] could not show notification:', e)
+      return false
+    }
   }
 }
 
@@ -101,9 +108,17 @@ export const useRemindersStore = defineStore('reminders', {
       intervalId = null
     },
 
-    check() {
-      if (this.permission !== 'granted' || !this.enabled) return
+    async check() {
+      if (this.permission !== 'granted' || !this.enabled || checking) return
+      checking = true
+      try {
+        await this.sendDueReminders()
+      } finally {
+        checking = false
+      }
+    },
 
+    async sendDueReminders() {
       const sent = loadNotifiedKeys()
       const due = findReminders(useTasksStore().tasks, sent)
       if (!due.length) return
@@ -113,12 +128,12 @@ export const useRemindersStore = defineStore('reminders', {
       // Only remember reminders the browser actually accepted, so a failed one is retried.
       if (due.length > MAX_INDIVIDUAL) {
         // e.g. you open the app after a week away - don't spam one popup per old task
-        if (notify('Remind Me', `${due.length} tasks are due or overdue.`, 'summary')) {
+        if (await notify('Remind Me', `${due.length} tasks are due or overdue.`, 'summary')) {
           due.forEach(({ key }) => sent.add(key))
         }
       } else {
         for (const { task, kind, key } of due) {
-          const shown = notify(
+          const shown = await notify(
             kind === 'soon' ? `Due soon: ${task.title}` : `Overdue: ${task.title}`,
             `${kind === 'soon' ? 'Due' : 'Was due'} ${formatDue(task.due_at)}`,
             task.id
