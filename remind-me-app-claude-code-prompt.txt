@@ -1,0 +1,108 @@
+REMIND ME APP — BUILD PROMPT FOR CLAUDE CODE
+================================================
+
+PROJECT CONTEXT
+----------------
+I'm building "Remind Me," a personal productivity app to help me (an unemployed
+junior web/app developer) stay focused on upskilling, job hunting, and daily
+tasks. It's a portfolio piece that will go on my GitHub.
+
+Stack already chosen:
+- Frontend: Vue 3 + Vite + Tailwind CSS, Pinia for state
+- Backend/DB/Auth: Supabase (Postgres)
+- Kanban drag-and-drop: vue-draggable-plus
+- Charts: Chart.js + vue-chartjs
+- AI: Claude API, called from a Supabase Edge Function (key stays server-side)
+- PWA: vite-plugin-pwa
+- Hosting: Vercel, deployed from GitHub
+
+CURRENT STATUS
+---------------
+- Phase 1 done: Vue project created, Supabase project created.
+- `tasks` table exists in Supabase with row-level security (user_id = auth.uid()).
+- Working on login: Supabase Auth with email/password AND Google OAuth.
+  Auth store (Pinia), AuthView.vue, and a router guard are already written.
+- Not yet started: Phases 2 through 8 below.
+
+HOW I WANT TO WORK
+--------------------
+- I'm a junior developer. Explain what each file does and why, in plain
+  language, as you write it — don't just hand me code silently.
+- Build one phase at a time. Finish and explain Phase 2 fully before touching
+  Phase 3, even if I paste this whole prompt in at once.
+- Keep each phase runnable and testable on its own — I want to use the app
+  while I'm still building the rest of it.
+- Favor simple, readable code over clever code. This will be reviewed by
+  recruiters and in job interviews.
+- Tell me explicitly what to test after each phase before we move on.
+
+THE PHASES
+-----------
+
+PHASE 2 — Task list (CRUD)
+Build the core tasks feature on top of the existing `tasks` table
+(columns: id, user_id, title, notes, category, status, due_at, position,
+completed_at, created_at; category is one of upskilling/job_hunt/daily;
+status is one of todo/doing/done).
+- A form to add a task (title, notes, category, optional due date)
+- A list view showing all my tasks
+- Edit a task in place
+- Mark a task complete (sets status='done' and completed_at)
+- Delete a task
+- Filter the list by category (upskilling / job_hunt / daily / all)
+All reads/writes should go through the Supabase client and respect the
+logged-in user (RLS already handles this server-side).
+
+PHASE 3 — Kanban board
+A board view with three columns: To Do, Doing, Done, driven by the same
+`tasks` table (status field). Use vue-draggable-plus so I can drag cards
+between columns and reorder within a column. On drop, update both `status`
+and `position` in Supabase so the order persists on reload.
+
+PHASE 4 — Focus timer (Pomodoro)
+A Pomodoro timer: 25 minutes focus / 5 minutes break, start/pause/reset.
+Let me optionally link a session to a specific task. When a focus session
+ends (or I stop it early), save a row to a new `focus_sessions` table
+(columns: id, user_id, task_id nullable, started_at, minutes_focused).
+Give me the SQL to create this table with RLS matching the `tasks` table.
+
+PHASE 5 — Dashboard
+A dashboard page with:
+- Current daily streak (consecutive days with at least one completed task
+  or focus session)
+- Tasks completed this week, broken down by category
+- A chart (Chart.js) of focus hours per day over the last 7 days
+Pull everything from the real `tasks` and `focus_sessions` tables — no
+placeholder/fake data.
+
+PHASE 6 — Reminders
+Browser notifications (Notification API) for tasks with a due_at coming up
+or overdue. Ask for notification permission at an appropriate point in the
+UI, not immediately on page load. Note for me in your explanation: this only
+works while the app is open in a tab; true "closed app" push notifications
+are a later upgrade (web push), not part of this phase.
+
+PHASE 7 — AI coach
+Using the Claude API (called from a Supabase Edge Function so my API key
+never reaches the browser), add:
+- "Break this goal into tasks": I type a goal, it returns a list of
+  suggested tasks (with category guesses) that I can review and add in bulk
+- A daily plan suggestion based on my open tasks and due dates
+- Short motivational check-in messages based on my real stats (streak,
+  completed vs overdue tasks) — not generic canned text
+Walk me through creating the Edge Function, setting the Claude API key as a
+Supabase secret, and calling it from the frontend.
+
+PHASE 8 — PWA + deploy
+- Configure vite-plugin-pwa so the app is installable on my phone (manifest,
+  icons, service worker)
+- Push the project to GitHub (help me write a clean README describing the
+  project and stack, since this is a portfolio piece)
+- Deploy to Vercel connected to the GitHub repo
+- Update the Supabase Site URL / Redirect URLs and Google OAuth redirect URI
+  to the live Vercel domain so login keeps working in production
+
+START HERE
+-----------
+Start with Phase 2. Ask me any clarifying questions you need first, then
+build it step by step, explaining as you go.
