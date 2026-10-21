@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { matchesView } from '@/lib/taskViews'
 
 const UNDO_MS = 5000
 
@@ -17,7 +18,8 @@ function normalize(task) {
 export const useTasksStore = defineStore('tasks', {
   state: () => ({
     tasks: [],
-    filter: 'all', // 'all' | 'upskilling' | 'job_hunt' | 'daily'
+    filter: 'all', // 'all' or a category key
+    view: 'any', // a smart list from the dashboard tiles: 'today', 'overdue', ... or 'any'
     loading: false,
     error: '',
     // Turns false if the subtasks table has not been created yet, so the rest of the app keeps working.
@@ -25,8 +27,12 @@ export const useTasksStore = defineStore('tasks', {
   }),
 
   getters: {
-    filteredTasks: (state) =>
-      state.filter === 'all' ? state.tasks : state.tasks.filter((t) => t.category === state.filter)
+    filteredTasks: (state) => {
+      const now = new Date()
+      return state.tasks.filter(
+        (t) => (state.filter === 'all' || t.category === state.filter) && matchesView(t, state.view, now)
+      )
+    }
   },
 
   actions: {

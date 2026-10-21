@@ -5,6 +5,7 @@ import { ChartColumn, Clock, ListTodo, Sparkles, Timer } from 'lucide-vue-next'
 import { useFocusStore } from '@/stores/focus'
 import { useTimeStore } from '@/stores/time'
 import AccountMenu from '@/components/AccountMenu.vue'
+import AppFooter from '@/components/AppFooter.vue'
 
 // The frame around every logged-in page: top bar, page content, and (on phones) a bottom tab bar.
 const focus = useFocusStore()
@@ -88,6 +89,7 @@ function isActive(item) {
 
     <main class="app-main mx-auto px-4 pt-6" :class="contentWidth">
       <slot />
+      <AppFooter />
     </main>
 
     <!-- Phone tab bar -->

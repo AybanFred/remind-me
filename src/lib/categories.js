@@ -50,6 +50,24 @@ export function dotLook(color) {
   return { class: DOT.neutral, style: null }
 }
 
+const ICON = {
+  primary: 'bg-primary text-primary-content',
+  secondary: 'bg-secondary text-secondary-content',
+  accent: 'bg-accent text-accent-content',
+  info: 'bg-info text-info-content',
+  success: 'bg-success text-success-content',
+  warning: 'bg-warning text-warning-content',
+  error: 'bg-error text-error-content',
+  neutral: 'bg-neutral text-neutral-content'
+}
+
+// Class and style for a round icon filled with the category colour (like Apple's list icons).
+export function iconLook(color) {
+  if (ICON[color]) return { class: ICON[color], style: null }
+  if (isHexColor(color)) return { class: '', style: { backgroundColor: color, color: readableTextOn(color) } }
+  return { class: ICON.neutral, style: null }
+}
+
 // "Side projects!" -> "side_projects". Adds _2, _3, ... if that key is already taken.
 export function slugify(label, takenKeys = []) {
   const base =

@@ -1,6 +1,8 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Inbox, Settings2, Sparkles } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Inbox, Settings2, Sparkles, X } from 'lucide-vue-next'
+import { TASK_VIEWS } from '@/lib/taskViews'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
 import { useCategoriesStore } from '@/stores/categories'
@@ -14,6 +16,23 @@ const toast = useToastStore()
 const form = ref(null)
 
 const categories = useCategoriesStore()
+const route = useRoute()
+const router = useRouter()
+
+// The dashboard tiles link here with ?view=overdue (a smart list) or ?category=job_hunt.
+watch(
+  () => route.query,
+  (query) => {
+    tasks.view = TASK_VIEWS[query.view] ? query.view : 'any'
+    if (query.category) tasks.filter = String(query.category)
+  },
+  { immediate: true }
+)
+
+function clearView() {
+  tasks.view = 'any'
+  router.replace({ query: {} })
+}
 
 const filters = computed(() => [
   { value: 'all', label: 'All' },
@@ -47,6 +66,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <ReminderBanner />
 
     <TaskForm ref="form" :on-save="addTask" />
+
+    <div v-if="tasks.view !== 'any'" class="flex items-center gap-2">
+      <span class="text-base-content/60 text-sm">Showing</span>
+      <button
+        class="badge badge-primary gap-1"
+        :aria-label="`Stop showing only ${TASK_VIEWS[tasks.view].label}`"
+        @click="clearView"
+      >
+        {{ TASK_VIEWS[tasks.view].label }} <X class="size-3" />
+      </button>
+    </div>
 
     <nav class="join max-w-full overflow-x-auto" aria-label="Filter by category">
       <button
@@ -83,7 +113,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     >
       <Inbox class="text-base-content/30 size-12" />
       <p class="font-medium">
-        {{ tasks.filter === 'all' ? 'Nothing here yet' : 'No tasks in this category' }}
+        {{ tasks.view !== 'any' ? 'Nothing in this list' : tasks.filter === 'all' ? 'Nothing here yet' : 'No tasks in this category' }}
       </p>
       <p class="text-base-content/60 max-w-xs text-sm">
         Add a task above. Press <kbd class="kbd kbd-sm">N</kbd> any time to jump to the form.

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AppFooter from '@/components/AppFooter.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -32,7 +33,7 @@ async function submit() {
 
 <template>
   <div
-    class="from-primary/15 via-base-100 to-secondary/15 flex min-h-screen items-center justify-center bg-linear-to-br p-4"
+    class="from-primary/15 via-base-100 to-secondary/15 flex min-h-screen flex-col items-center justify-center bg-linear-to-br p-4"
   >
     <div class="card card-border bg-base-100 w-full max-w-sm shadow-md">
       <div class="card-body gap-3">
@@ -70,5 +71,6 @@ async function submit() {
         </button>
       </div>
     </div>
+    <AppFooter />
   </div>
 </template>
