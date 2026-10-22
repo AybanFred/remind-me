@@ -56,7 +56,12 @@ export const useAuthStore = defineStore('auth', {
     async signInWithGoogle() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin }
+        options: {
+          redirectTo: window.location.origin,
+          // Logging out only ends our session, not the user's Google one. Without this, Google
+          // signs them straight back in; with it, they pick the account each time.
+          queryParams: { prompt: 'select_account' }
+        }
       })
       if (error) throw error
     },
