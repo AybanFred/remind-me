@@ -29,8 +29,24 @@ export const useAuthStore = defineStore('auth', {
         this.user = session?.user ?? null
       })
     },
+    // When the project requires email confirmation, Supabase creates the account but sends no
+    // session back until the link in the email is opened. Returns true in that case, so the page
+    // can tell the user to check their inbox.
     async signUpWithEmail(email, password) {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin } // the email link brings them back here
+      })
+      if (error) throw error
+      return !data.session
+    },
+    async resendConfirmation(email) {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: window.location.origin }
+      })
       if (error) throw error
     },
     async signInWithEmail(email, password) {

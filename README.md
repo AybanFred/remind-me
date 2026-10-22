@@ -161,6 +161,10 @@ In the Supabase SQL Editor, run these in order:
 6. `supabase/migrations/20261025000000_categories.sql` (custom categories; without it the three built-in ones are used)
 7. `supabase/migrations/20261026000000_important_tasks.sql` (the "Very important" tag; without it tasks just can't be tagged)
 
+### Email confirmation (recommended)
+
+New email sign-ups should confirm their address before they can log in. In the Supabase dashboard, open the Email provider settings under Authentication and turn on the option that requires users to confirm their email (called **Confirm email** in most dashboard versions; if you cannot find it, check the Authentication settings pages or the Supabase docs for "email confirmations"). Then, under Authentication, URL Configuration, set the **Site URL** to your live address (the confirmation link sends people back there). The app shows a "Check your email" screen after sign-up, offers to resend the email, and explains the problem if someone tries to log in before confirming. Google sign-in users are already verified by Google.
+
 ### Google sign-in (optional)
 
 1. In Supabase, go to Authentication, Providers, and enable Google with a Google OAuth client.
