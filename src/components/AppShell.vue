@@ -6,6 +6,7 @@ import { useFocusStore } from '@/stores/focus'
 import { useTimeStore } from '@/stores/time'
 import AccountMenu from '@/components/AccountMenu.vue'
 import AppFooter from '@/components/AppFooter.vue'
+import NotificationMenu from '@/components/NotificationMenu.vue'
 import ThemeMenu from '@/components/ThemeMenu.vue'
 
 // The frame around every logged-in page: top bar, page content, and (on phones) a bottom tab bar.
@@ -84,6 +85,7 @@ function isActive(item) {
           </RouterLink>
 
           <ThemeMenu />
+          <NotificationMenu />
           <AccountMenu />
         </div>
       </div>

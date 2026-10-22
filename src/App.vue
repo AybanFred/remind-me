@@ -8,6 +8,7 @@ import { useFocusStore } from '@/stores/focus'
 import { useTasksStore } from '@/stores/tasks'
 import { useTimeStore } from '@/stores/time'
 import { useRemindersStore } from '@/stores/reminders'
+import { useNotificationsStore } from '@/stores/notifications'
 import AppShell from '@/components/AppShell.vue'
 import ToastHost from '@/components/ToastHost.vue'
 
@@ -18,6 +19,7 @@ const tasks = useTasksStore()
 const focus = useFocusStore()
 const time = useTimeStore()
 const reminders = useRemindersStore()
+const notifications = useNotificationsStore()
 const route = useRoute()
 
 // Reminders run on every page, so they are started here (the root component)
@@ -30,11 +32,13 @@ watch(
     if (id) {
       appearance.syncFromAccount() // colours and font saved on your account
       categories.fetch() // your own task categories
+      notifications.load(id) // the bell's list, before reminders start adding to it
       reminders.start()
       focus.hydrate() // bring back a timer that was running before a refresh
       time.fetchAll() // a time-tracker entry may still be running (maybe started on another device)
     } else {
       reminders.stop()
+      notifications.clear()
       tasks.$reset() // don't keep the previous account's data in memory after logout
       focus.clear()
       time.clear()

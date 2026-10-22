@@ -60,7 +60,7 @@ export const useTasksStore = defineStore('tasks', {
       this.loading = false
     },
 
-    async addTask({ title, notes, category, due_at }) {
+    async addTask({ title, notes, category, due_at, important }) {
       const auth = useAuthStore()
       const { data, error } = await supabase
         .from('tasks')
@@ -70,6 +70,8 @@ export const useTasksStore = defineStore('tasks', {
           notes,
           category,
           due_at,
+          // Left out unless set, so adding tasks still works before the `important` column exists.
+          ...(important && { important }),
           status: 'todo',
           position: 0 // Phase 3 (Kanban) will set real positions
         })

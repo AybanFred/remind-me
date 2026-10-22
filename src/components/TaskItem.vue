@@ -6,6 +6,7 @@ import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
 import { formatDue } from '@/lib/dates'
 import CategoryBadge from '@/components/CategoryBadge.vue'
+import ImportantBadge from '@/components/ImportantBadge.vue'
 import SubtaskList from '@/components/SubtaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
 
@@ -66,6 +67,7 @@ async function save(changes) {
         <p v-if="task.notes" class="text-base-content/70 mt-0.5 text-sm wrap-break-word">{{ task.notes }}</p>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
           <CategoryBadge :category="task.category" />
+          <ImportantBadge v-if="task.important" />
           <span
             v-if="task.due_at"
             class="flex items-center gap-1"

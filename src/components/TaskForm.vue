@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import { useCategoriesStore } from '@/stores/categories'
 import { isoToLocalInput, localInputToIso } from '@/lib/dates'
+import ImportantToggle from '@/components/ImportantToggle.vue'
 
 // Used for BOTH adding a new task and editing an existing one.
 // For editing, the parent passes the task in as `initial`.
@@ -30,6 +31,7 @@ const categoryOptions = computed(() => {
   return list
 })
 const dueAt = ref(isoToLocalInput(props.initial?.due_at))
+const important = ref(props.initial?.important ?? false)
 const error = ref('')
 const saving = ref(false)
 
@@ -40,16 +42,20 @@ async function onSubmit() {
   error.value = ''
   saving.value = true
   try {
-    await props.onSave({
+    const task = {
       title: title.value.trim(),
       notes: notes.value.trim(),
       category: category.value,
       due_at: localInputToIso(dueAt.value)
-    })
+    }
+    // Only sent when it changed, so saving still works before the `important` column exists.
+    if (important.value !== (props.initial?.important ?? false)) task.important = important.value
+    await props.onSave(task)
     if (!props.initial) {
       title.value = ''
       notes.value = ''
       dueAt.value = ''
+      important.value = false
       titleInput.value?.focus() // ready for the next task
     }
   } catch (e) {
@@ -82,7 +88,7 @@ async function onSubmit() {
       <input v-model="dueAt" type="datetime-local" class="input w-full" aria-label="Due date" />
     </div>
     <p v-if="error" class="text-error text-sm">{{ error }}</p>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
       <button type="submit" :disabled="saving" class="btn btn-primary">
         <span v-if="saving" class="loading loading-spinner loading-sm"></span>
         <Plus v-else-if="!initial" class="size-4" />
@@ -91,6 +97,7 @@ async function onSubmit() {
       <button v-if="initial" type="button" class="btn btn-ghost" @click="emit('cancel')">
         Cancel
       </button>
+      <ImportantToggle v-model="important" class="ml-auto" />
     </div>
   </form>
 </template>

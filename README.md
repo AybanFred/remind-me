@@ -102,7 +102,7 @@ flowchart LR
 
 | Table | Columns | Notes |
 | --- | --- | --- |
-| `tasks` | `id`, `user_id`, `title`, `notes`, `category`, `status`, `due_at`, `position`, `completed_at`, `created_at` | `category` is `upskilling`, `job_hunt` or `daily`. `status` is `todo`, `doing` or `done`. `position` orders cards in a column. |
+| `tasks` | `id`, `user_id`, `title`, `notes`, `category`, `status`, `due_at`, `important`, `position`, `completed_at`, `created_at` | `category` is `upskilling`, `job_hunt` or `daily`. `status` is `todo`, `doing` or `done`. `important` is the "Very important" tag. `position` orders cards in a column. |
 | `categories` | `id`, `user_id`, `key`, `label`, `color`, `position` | Tasks store the `key`, which never changes, so renaming a category touches no tasks. `color` is a theme color name or a hex value. |
 | `subtasks` | `id`, `user_id`, `task_id`, `title`, `done`, `position` | Deleted together with their task. Loaded in the same request as the tasks. |
 | `projects` | `id`, `user_id`, `name`, `client`, `color`, `hourly_rate`, `archived` | A project with hours logged cannot be deleted (the database refuses), so it is archived instead. |
@@ -159,6 +159,7 @@ In the Supabase SQL Editor, run these in order:
 4. `supabase/migrations/20261023000000_time_tracking.sql` (projects, project tasks and time entries)
 5. `supabase/migrations/20261024000000_subtasks.sql` (subtask checklists; the app still works without it, just without subtasks)
 6. `supabase/migrations/20261025000000_categories.sql` (custom categories; without it the three built-in ones are used)
+7. `supabase/migrations/20261026000000_important_tasks.sql` (the "Very important" tag; without it tasks just can't be tagged)
 
 ### Google sign-in (optional)
 

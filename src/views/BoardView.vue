@@ -7,6 +7,7 @@ import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
 import { formatDue } from '@/lib/dates'
 import CategoryBadge from '@/components/CategoryBadge.vue'
+import ImportantBadge from '@/components/ImportantBadge.vue'
 import TaskModal from '@/components/TaskModal.vue'
 import TaskViewTabs from '@/components/TaskViewTabs.vue'
 
@@ -39,6 +40,11 @@ onMounted(async () => {
   await tasks.fetchTasks()
   buildColumns()
 })
+
+// By default the drag library drops a JSON *copy* of the task into the new column. Saving
+// then updates the copy, not the task in the store, so the next rebuild puts the card back
+// in its old column. Moving the real task object avoids that.
+const keepTask = (task) => task
 
 // Runs when a card is dropped into a column (either from another column or reordered
 // inside the same one). We wait one tick so the library has finished updating
@@ -98,7 +104,7 @@ function isOverdue(task) {
       <section
         v-for="col in columnInfo"
         :key="col.status"
-        class="bg-base-200 rounded-box min-w-[85%] snap-center p-3 md:min-w-0"
+        class="bg-base-200 rounded-box flex min-w-[85%] snap-center flex-col p-3 md:min-w-0"
       >
         <h2 class="mb-3 flex items-center gap-2 font-semibold">
           <span class="size-2.5 rounded-full" :class="col.dot"></span>
@@ -106,61 +112,71 @@ function isOverdue(task) {
           <span class="badge badge-neutral badge-sm ml-auto">{{ columns[col.status].length }}</span>
         </h2>
 
-        <!-- group="tasks" lets cards move between the three columns.
+        <!-- The list fills the whole column, not just the height of its cards. Otherwise a card
+             dragged sideways from low down in To Do would reach empty background in a shorter
+             column, which isn't a drop zone, and the browser shows a "not allowed" cursor. -->
+        <div class="relative flex flex-1 flex-col">
+          <!-- group="tasks" lets cards move between the three columns.
              On touch screens a short press-and-hold starts the drag, so normal scrolling still works. -->
-        <VueDraggable
-          v-model="columns[col.status]"
-          group="tasks"
-          :animation="150"
-          :delay="150"
-          :delay-on-touch-only="true"
-          ghost-class="opacity-40"
-          class="min-h-24 space-y-2"
-          @start="onDragStart"
-          @end="onDragEnd"
-          @add="onDrop(col.status)"
-          @update="onDrop(col.status)"
-        >
-          <article
-            v-for="task in columns[col.status]"
-            :key="task.id"
-            class="card bg-base-100 hover:ring-primary/40 cursor-grab p-3 shadow-sm hover:ring-2 active:cursor-grabbing"
-            role="button"
-            tabindex="0"
-            :aria-label="`Open ${task.title}`"
-            @click="openTask(task)"
-            @keydown.enter="openTask(task)"
+          <VueDraggable
+            v-model="columns[col.status]"
+            group="tasks"
+            :clone="keepTask"
+            :animation="150"
+            :delay="150"
+            :delay-on-touch-only="true"
+            ghost-class="opacity-40"
+            class="min-h-24 flex-1 space-y-2"
+            @start="onDragStart"
+            @end="onDragEnd"
+            @add="onDrop(col.status)"
+            @update="onDrop(col.status)"
           >
-            <p
-              class="font-medium wrap-break-word"
-              :class="{ 'line-through opacity-50': task.status === 'done' }"
+            <article
+              v-for="task in columns[col.status]"
+              :key="task.id"
+              class="card bg-base-100 hover:ring-primary/40 cursor-grab p-3 shadow-sm hover:ring-2 active:cursor-grabbing"
+              role="button"
+              tabindex="0"
+              :aria-label="`Open ${task.title}`"
+              @click="openTask(task)"
+              @keydown.enter="openTask(task)"
             >
-              {{ task.title }}
-            </p>
-            <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <CategoryBadge :category="task.category" small />
-              <span v-if="task.subtasks?.length" class="text-base-content/60 flex items-center gap-1">
-                <ListChecks class="size-3.5" />
-                {{ task.subtasks.filter((s) => s.done).length }}/{{ task.subtasks.length }}
-              </span>
-              <span
-                v-if="task.due_at"
-                class="flex items-center gap-1"
-                :class="isOverdue(task) ? 'text-error font-semibold' : 'text-base-content/60'"
+              <p
+                class="font-medium wrap-break-word"
+                :class="{ 'line-through opacity-50': task.status === 'done' }"
               >
-                <CalendarClock class="size-3.5" />
-                {{ isOverdue(task) ? 'Overdue · ' : '' }}{{ formatDue(task.due_at) }}
-              </span>
-            </div>
-          </article>
-        </VueDraggable>
+                {{ task.title }}
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <CategoryBadge :category="task.category" small />
+                <ImportantBadge v-if="task.important" small />
+                <span
+                  v-if="task.subtasks?.length"
+                  class="text-base-content/60 flex items-center gap-1"
+                >
+                  <ListChecks class="size-3.5" />
+                  {{ task.subtasks.filter((s) => s.done).length }}/{{ task.subtasks.length }}
+                </span>
+                <span
+                  v-if="task.due_at"
+                  class="flex items-center gap-1"
+                  :class="isOverdue(task) ? 'text-error font-semibold' : 'text-base-content/60'"
+                >
+                  <CalendarClock class="size-3.5" />
+                  {{ isOverdue(task) ? 'Overdue · ' : '' }}{{ formatDue(task.due_at) }}
+                </span>
+              </div>
+            </article>
+          </VueDraggable>
 
-        <p
-          v-if="!columns[col.status].length"
-          class="text-base-content/40 pointer-events-none -mt-20 pb-8 text-center text-sm"
-        >
-          Drop tasks here
-        </p>
+          <p
+            v-if="!columns[col.status].length"
+            class="text-base-content/40 pointer-events-none absolute inset-x-0 top-8 text-center text-sm"
+          >
+            Drop tasks here
+          </p>
+        </div>
       </section>
     </div>
 

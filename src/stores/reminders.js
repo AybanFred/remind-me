@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { findReminders } from '@/lib/reminders'
 import { useTasksStore } from '@/stores/tasks'
+import { useNotificationsStore } from '@/stores/notifications'
 import { formatDue } from '@/lib/dates'
 
 const CHECK_EVERY_MS = 30 * 1000
@@ -108,14 +109,31 @@ export const useRemindersStore = defineStore('reminders', {
       intervalId = null
     },
 
+    // The bell's list always gets reminders; system pop-ups only if allowed and switched on.
     async check() {
-      if (this.permission !== 'granted' || !this.enabled || checking) return
+      if (checking) return
       checking = true
       try {
-        await this.sendDueReminders()
+        this.listDueReminders()
+        if (this.permission === 'granted' && this.enabled) await this.sendDueReminders()
       } finally {
         checking = false
       }
+    },
+
+    listDueReminders() {
+      const notifications = useNotificationsStore()
+      if (!notifications.userId) return
+      const due = findReminders(useTasksStore().tasks, notifications.seenKeys)
+      notifications.add(
+        due.map(({ task, kind, key }) => ({
+          key,
+          kind,
+          taskId: task.id,
+          title: kind === 'soon' ? `Due soon: ${task.title}` : `Overdue: ${task.title}`,
+          body: `${kind === 'soon' ? 'Due' : 'Was due'} ${formatDue(task.due_at)}`
+        }))
+      )
     },
 
     async sendDueReminders() {
@@ -148,6 +166,7 @@ export const useRemindersStore = defineStore('reminders', {
     // Used by other features (e.g. the focus timer) to show a notification right now,
     // if the user has allowed notifications.
     async notifyNow(title, body) {
+      useNotificationsStore().add([{ kind: 'timer', title, body }])
       if (this.permission !== 'granted' || !this.enabled) return
       await notify(title, body, 'timer')
     },

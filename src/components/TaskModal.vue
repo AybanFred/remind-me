@@ -7,6 +7,8 @@ import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
 import CategoryBadge from '@/components/CategoryBadge.vue'
+import ImportantBadge from '@/components/ImportantBadge.vue'
+import ImportantToggle from '@/components/ImportantToggle.vue'
 import SubtaskList from '@/components/SubtaskList.vue'
 
 // A pop-up with everything about one task, all editable. Used by the Board and the Calendar.
@@ -34,7 +36,8 @@ const form = ref({
   notes: task.value?.notes ?? '',
   category: task.value?.category ?? '',
   dueAt: isoToLocalInput(task.value?.due_at),
-  status: task.value?.status ?? 'todo'
+  status: task.value?.status ?? 'todo',
+  important: task.value?.important ?? false
 })
 const saving = ref(false)
 
@@ -73,6 +76,8 @@ async function save() {
     category: form.value.category,
     due_at: localInputToIso(form.value.dueAt)
   }
+  // Only sent when it changed, so saving still works before the `important` column exists.
+  if (form.value.important !== (current.important ?? false)) changes.important = form.value.important
 
   // Changing the status works like dragging the card to that column: it goes to the bottom of
   // the column, and completed_at is set or cleared the same way the checkbox does it.
@@ -115,7 +120,10 @@ function remove() {
     <div v-if="task" class="modal-box max-h-[90vh] max-w-lg space-y-4">
       <header class="flex items-start justify-between gap-3">
         <div class="space-y-1">
-          <CategoryBadge :category="form.category" small />
+          <div class="flex flex-wrap gap-1.5">
+            <CategoryBadge :category="form.category" small />
+            <ImportantBadge v-if="form.important" small />
+          </div>
           <p class="text-base-content/60 text-xs">
             Created {{ formatDate(task.created_at) }}
             <template v-if="task.completed_at"> · Completed {{ formatDate(task.completed_at) }}</template>
@@ -155,6 +163,7 @@ function remove() {
             <input v-model="form.dueAt" type="datetime-local" class="input input-sm w-full" />
           </label>
         </div>
+        <ImportantToggle v-model="form.important" small />
       </form>
 
       <!-- Subtasks save as you change them; they don't wait for the Save button. -->
