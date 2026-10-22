@@ -161,9 +161,19 @@ In the Supabase SQL Editor, run these in order:
 6. `supabase/migrations/20261025000000_categories.sql` (custom categories; without it the three built-in ones are used)
 7. `supabase/migrations/20261026000000_important_tasks.sql` (the "Very important" tag; without it tasks just can't be tagged)
 
-### Email confirmation (recommended)
+### Welcome email (optional)
 
-New email sign-ups should confirm their address before they can log in. In the Supabase dashboard, open the Email provider settings under Authentication and turn on the option that requires users to confirm their email (called **Confirm email** in most dashboard versions; if you cannot find it, check the Authentication settings pages or the Supabase docs for "email confirmations"). Then, under Authentication, URL Configuration, set the **Site URL** to your live address (the confirmation link sends people back there). The app shows a "Check your email" screen after sign-up, offers to resend the email, and explains the problem if someone tries to log in before confirming. Google sign-in users are already verified by Google.
+New accounts get a one-time welcome email. The app calls the `welcome` Edge Function right after the first sign-in; the function reads the address from the verified login token (never from the request), emails only accounts created in the last 24 hours, and records `welcome_sent_at` on the account so it is sent once. It uses the [Brevo](https://www.brevo.com) email API, which needs no domain of your own, only a verified sender address.
+
+```sh
+npx supabase secrets set BREVO_API_KEY=<your-brevo-api-key>
+npx supabase secrets set WELCOME_FROM_EMAIL=<a sender verified in Brevo>
+npx supabase secrets set WELCOME_FROM_NAME="Remind Me"            # optional
+npx supabase secrets set SITE_URL=https://your-site.vercel.app    # optional
+npx supabase functions deploy welcome
+```
+
+If the secrets are missing, the app keeps working and simply sends no welcome email. The app also copes with **Confirm email** being switched on in Supabase (Authentication, Sign In / Providers, User Signups): it shows a "Check your email" screen after sign-up. Note that Supabase's built-in email sender is limited and meant for testing, so that option needs your own SMTP settings before real users sign up. Without email confirmation, anyone can sign up with an address they do not own, so the welcome email can reach someone who never asked for it; consider turning on CAPTCHA protection (Authentication, Attack Protection) once the app has real users.
 
 ### Google sign-in (optional)
 

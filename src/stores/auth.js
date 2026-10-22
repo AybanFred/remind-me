@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { supabase } from '@/lib/supabase'
 import { toSquareJpeg } from '@/lib/avatar'
+import { shouldSendWelcome } from '@/lib/welcome'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -48,6 +49,13 @@ export const useAuthStore = defineStore('auth', {
         options: { emailRedirectTo: window.location.origin }
       })
       if (error) throw error
+    },
+    // Asks the "welcome" Edge Function to email a newly created account (once). The server decides
+    // whether it is allowed, and a failure here must never get in the way of using the app.
+    async sendWelcome() {
+      if (!shouldSendWelcome(this.user)) return
+      const { error } = await supabase.functions.invoke('welcome')
+      if (error) console.warn('[welcome] could not send the welcome email:', error.message)
     },
     async signInWithEmail(email, password) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })

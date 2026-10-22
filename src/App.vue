@@ -30,6 +30,7 @@ watch(
   () => auth.user?.id,
   (id) => {
     if (id) {
+      auth.sendWelcome() // a one-time welcome email for brand new accounts
       appearance.syncFromAccount() // colours and font saved on your account
       categories.fetch() // your own task categories
       notifications.load(id) // the bell's list, before reminders start adding to it
