@@ -43,3 +43,7 @@ __screenshots__/
 .env.*
 !.env.example
 .claude/
+
+
+remind-me-app-claude-code-prompt.txt
+portfolio-illustrations.txt
