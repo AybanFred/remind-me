@@ -7,6 +7,7 @@ import { useRewardsStore } from '@/stores/rewards'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
 import CategoryBadge from '@/components/CategoryBadge.vue'
+import DueDatePicker from '@/components/DueDatePicker.vue'
 import ImportantBadge from '@/components/ImportantBadge.vue'
 import ImportantToggle from '@/components/ImportantToggle.vue'
 import SubtaskList from '@/components/SubtaskList.vue'
@@ -145,7 +146,7 @@ function remove() {
         />
         <textarea v-model="form.notes" rows="3" placeholder="Notes" class="textarea w-full" aria-label="Notes" />
 
-        <div class="grid gap-3 sm:grid-cols-3">
+        <div class="grid gap-3 sm:grid-cols-2">
           <label class="text-xs">
             <span class="text-base-content/60 mb-1 block">Status</span>
             <select v-model="form.status" class="select select-sm w-full">
@@ -158,10 +159,11 @@ function remove() {
               <option v-for="c in categoryOptions" :key="c.key" :value="c.key">{{ c.label }}</option>
             </select>
           </label>
-          <label class="text-xs">
+          <!-- A <div>, not a <label>: the picker is made of buttons, not one input -->
+          <div class="text-xs sm:col-span-2">
             <span class="text-base-content/60 mb-1 block">Due</span>
-            <input v-model="form.dueAt" type="datetime-local" class="input input-sm w-full" />
-          </label>
+            <DueDatePicker v-model="form.dueAt" small />
+          </div>
         </div>
         <ImportantToggle v-model="form.important" small />
       </form>

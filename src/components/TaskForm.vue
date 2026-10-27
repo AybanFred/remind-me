@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import { useCategoriesStore } from '@/stores/categories'
 import { isoToLocalInput, localInputToIso } from '@/lib/dates'
+import DueDatePicker from '@/components/DueDatePicker.vue'
 import ImportantToggle from '@/components/ImportantToggle.vue'
 
 // Used for BOTH adding a new task and editing an existing one.
@@ -85,7 +86,7 @@ async function onSubmit() {
       <select v-model="category" class="select w-full" aria-label="Category">
         <option v-for="c in categoryOptions" :key="c.key" :value="c.key">{{ c.label }}</option>
       </select>
-      <input v-model="dueAt" type="datetime-local" class="input w-full" aria-label="Due date" />
+      <DueDatePicker v-model="dueAt" />
     </div>
     <p v-if="error" class="text-error text-sm">{{ error }}</p>
     <div class="flex flex-wrap gap-2">
