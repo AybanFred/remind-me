@@ -6,6 +6,7 @@ import { useFocusStore } from '@/stores/focus'
 import { useTimeStore } from '@/stores/time'
 import AccountMenu from '@/components/AccountMenu.vue'
 import AppFooter from '@/components/AppFooter.vue'
+import MiniTimer from '@/components/MiniTimer.vue'
 import NotificationMenu from '@/components/NotificationMenu.vue'
 import ThemeMenu from '@/components/ThemeMenu.vue'
 
@@ -95,6 +96,9 @@ function isActive(item) {
       <slot />
       <AppFooter />
     </main>
+
+    <!-- The minimized time tracker, floating above every page -->
+    <MiniTimer />
 
     <!-- Phone tab bar -->
     <nav class="dock md:hidden" aria-label="Main">

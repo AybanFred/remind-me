@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { ClockPlus, Play, Square } from 'lucide-vue-next'
+import { ClockPlus, Minimize2, Play, Square } from 'lucide-vue-next'
 import { localInputToIso, isoToLocalInput } from '@/lib/dates'
 import { durationSeconds, formatHours, rangeFor } from '@/lib/time'
 import { useTimeStore } from '@/stores/time'
@@ -85,15 +85,15 @@ async function stop() {
   }
 }
 
-// ---------- Totals ----------
-const todaySeconds = computed(() => totalFor(rangeFor('today')))
-const weekSeconds = computed(() => totalFor(rangeFor('week')))
-
-function totalFor({ from, to }) {
-  return time.entries
-    .filter((e) => new Date(e.started_at) >= from && new Date(e.started_at) < to)
-    .reduce((sum, e) => sum + durationSeconds(e, time.now), 0)
+// "Minimize" puts a small floating timer on screen that stays with you on every page.
+function toggleMini() {
+  if (time.mini.open) time.setMini({ open: false })
+  else time.setMini({ open: true, expanded: true })
 }
+
+// ---------- Totals ----------
+const todaySeconds = computed(() => time.secondsIn(rangeFor('today')))
+const weekSeconds = computed(() => time.secondsIn(rangeFor('week')))
 
 // ---------- Adding time by hand (for when you forgot to start the timer) ----------
 const manual = ref({ description: '', projectId: '', taskId: '', startedAt: '', endedAt: '' })
@@ -186,12 +186,31 @@ const setupNeeded = computed(() => /time_entries|projects|project_tasks|schema c
         >
           {{ running ? time.clock : '0:00:00' }}
         </p>
-        <button v-if="!running" type="submit" class="btn btn-primary btn-lg px-8">
-          <Play class="size-5" /> Start
-        </button>
-        <button v-else type="button" class="btn btn-error btn-lg px-8" @click="stop">
-          <Square class="size-5" /> Stop
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="running"
+            type="button"
+            class="btn btn-ghost btn-lg max-sm:btn-square"
+            :class="{ 'btn-active text-primary': time.mini.open }"
+            :aria-pressed="time.mini.open"
+            :aria-label="time.mini.open ? 'Hide the mini timer' : 'Minimize to a mini timer'"
+            :title="
+              time.mini.open
+                ? 'Hide the mini timer'
+                : 'Minimize: keep a small timer on screen on every page'
+            "
+            @click="toggleMini"
+          >
+            <Minimize2 class="size-5" />
+            <span class="hidden sm:inline">{{ time.mini.open ? 'Minimized' : 'Minimize' }}</span>
+          </button>
+          <button v-if="!running" type="submit" class="btn btn-primary btn-lg px-8">
+            <Play class="size-5" /> Start
+          </button>
+          <button v-else type="button" class="btn btn-error btn-lg px-8" @click="stop">
+            <Square class="size-5" /> Stop
+          </button>
+        </div>
       </div>
 
       <p v-if="!time.projects.length" class="text-base-content/60 text-sm">

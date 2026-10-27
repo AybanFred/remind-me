@@ -8,6 +8,14 @@ import { useToastStore } from '@/stores/toast'
 const RECENT_DAYS = 30
 const UNDO_MS = 5000
 const CURRENCY_KEY = 'timeCurrency'
+const MINI_KEY = 'miniTimer'
+
+// The floating mini timer you get by pressing "Minimize" on the Tracker page.
+//   open:     shown (on every page, while a timer runs)
+//   expanded: showing all the details, rather than shrunk to a small pill
+//   pinned:   stays expanded when you click elsewhere or change page
+//   corner:   where it sits on the screen, e.g. 'bottom-right'
+const MINI_DEFAULTS = { open: false, expanded: true, pinned: false, corner: 'bottom-right' }
 
 // The once-a-second timer that makes the running clock tick lives outside the state.
 let tickId = null
@@ -17,6 +25,14 @@ function readCurrency() {
     return localStorage.getItem(CURRENCY_KEY) ?? 'USD'
   } catch {
     return 'USD'
+  }
+}
+
+function readMini() {
+  try {
+    return { ...MINI_DEFAULTS, ...JSON.parse(localStorage.getItem(MINI_KEY) ?? '{}') }
+  } catch {
+    return { ...MINI_DEFAULTS }
   }
 }
 
@@ -30,6 +46,7 @@ export const useTimeStore = defineStore('time', {
     entries: [], // the last 30 days (plus the running one, however old)
     now: Date.now(), // updated every second while a timer runs, so clocks re-draw
     currency: readCurrency(),
+    mini: readMini(),
     loading: false,
     error: ''
   }),
@@ -50,7 +67,13 @@ export const useTimeStore = defineStore('time', {
     runningProject() {
       return this.running ? (this.projectById.get(this.running.project_id) ?? null) : null
     },
-    days: (state) => groupByDay(state.entries, state.now)
+    days: (state) => groupByDay(state.entries, state.now),
+
+    // Seconds logged in a range like rangeFor('today'), counting a running timer up to now.
+    secondsIn: (state) => ({ from, to }) =>
+      state.entries
+        .filter((e) => new Date(e.started_at) >= from && new Date(e.started_at) < to)
+        .reduce((sum, e) => sum + durationSeconds(e, state.now), 0)
   },
 
   actions: {
@@ -329,6 +352,18 @@ export const useTimeStore = defineStore('time', {
       this.currency = code
       try {
         localStorage.setItem(CURRENCY_KEY, code)
+      } catch {
+        /* not critical */
+      }
+    },
+
+    // ---------- the mini timer ----------
+
+    // Remembered on this device, so it looks the same after a refresh.
+    setMini(changes) {
+      Object.assign(this.mini, changes)
+      try {
+        localStorage.setItem(MINI_KEY, JSON.stringify(this.mini))
       } catch {
         /* not critical */
       }
